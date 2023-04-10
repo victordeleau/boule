@@ -3,7 +3,6 @@ package boule
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"github.com/victordeleau/boule/prefixtree"
 	"testing"
 )
 
@@ -12,7 +11,7 @@ func TestLexer(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(fmt.Sprintf("testing string %s", test.string), func(t *testing.T) {
 
-			lexer := newLexer(test.string, prefixtree.New())
+			lexer := newLexer(test.string)
 
 			var token *lexerToken
 			output := make([]*lexerToken, 0, 10)

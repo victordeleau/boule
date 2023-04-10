@@ -45,8 +45,10 @@ var tokens = map[Token]string{
 	GREATER_OR_EQUAL: ">=",
 	LESS:             "<",
 	LESS_OR_EQUAL:    "<=",
-	AND:              "&&",
-	OR:               "||",
+
+	// boolean operator
+	AND: "&&",
+	OR:  "||",
 
 	// unary operator
 	NOT: "!",
@@ -73,6 +75,10 @@ func (t Token) Literal() bool {
 
 func (t Token) BinaryOperator() bool {
 	return t > 4 && t < 13
+}
+
+func (t Token) BooleanOperator() bool {
+	return t > 10 && t < 13
 }
 
 func (t Token) UnaryOperator() bool {

@@ -1,29 +1,30 @@
 package boule
 
 import (
-	"errors"
+	"fmt"
+	"github.com/victordeleau/boule/internal/prefixtree"
 	"io"
 )
 
-var ErrInvalidSyntax = errors.New("invalid syntax")
-
 type AST struct {
-	program Expression
+	program node
 	lexer   *lexer
 	current *lexerToken
 	peek    *lexerToken
+	data    *prefixtree.Tree
 }
 
-func newAST(lexer *lexer) (*AST, error) {
+func NewAST(input string, data *prefixtree.Tree) (func() (bool, error), error) {
 
 	ast := &AST{
-		lexer: lexer,
+		lexer: newLexer(input),
 		current: &lexerToken{
 			token: OPEN,
 		},
 		peek: &lexerToken{
 			token: OPEN,
 		},
+		data: data,
 	}
 
 	var err error
@@ -35,7 +36,22 @@ func newAST(lexer *lexer) (*AST, error) {
 	}
 
 	ast.program, err = ast.expression()
-	return ast, err
+	if err != nil {
+		return nil, err
+	}
+
+	return func() (bool, error) {
+		result, err := ast.program.Evaluate(data)
+		if err != nil {
+			return false, err
+		}
+
+		resultBoolean, ok := result.(bool)
+		if !ok {
+			return false, fmt.Errorf("can't evaluate non-boolean identifier")
+		}
+		return resultBoolean, nil
+	}, nil
 }
 
 func (a *AST) next() error {
@@ -50,92 +66,100 @@ func (a *AST) next() error {
 	return nil
 }
 
-func (a *AST) expression() (Expression, error) {
+func (a *AST) expression() (node, error) {
 
-	var err error
-	if a.current.token == OPEN {
+	prefixExpression, err := a.suffixExpression()
+	if err != nil {
+		return nil, err
+	}
 
-		position := a.current.position
+	if a.peek.token.BinaryOperator() {
+
+		token := a.peek.token
+		position := a.peek.position
 
 		if err = a.next(); err != nil {
-			return nil, ErrInvalidSyntax
-		}
-
-		expression, err := a.expression()
-		if err != nil {
 			return nil, err
 		}
 
 		if err = a.next(); err != nil {
-			return nil, ErrInvalidSyntax
+			return nil, err
 		}
 
-		if a.current.token != CLOSE {
-			return nil, ErrInvalidSyntax
+		suffixExpression, err := a.suffixExpression()
+		if err != nil {
+			return nil, err
 		}
 
-		return &GroupingExpression{&Grouping{
-			openPosition:  position,
-			Expression:    expression,
-			closePosition: a.current.position,
-		}}, nil
-	}
-
-	return a.suffixExpression()
-}
-
-func (a *AST) suffixExpression() (Expression, error) {
-
-	var err error
-	if a.current.token.Literal() {
-
-		var prefixExpression Expression
-		switch a.current.token {
-		case INTEGER:
-			prefixExpression = &LiteralExpression{&LiteralInteger{
-				value:    a.current.value.(int),
-				position: a.current.position,
-			}}
-		case STRING:
-			prefixExpression = &LiteralExpression{&LiteralString{
-				value:    a.current.value.(string),
-				position: a.current.position,
-			}}
-		default:
-			prefixExpression = &LiteralExpression{&LiteralIdent{
-				token:    a.current.token,
-				position: a.current.position,
-			}}
+		binaryExpression := &BinaryExpression{
+			left:     prefixExpression,
+			token:    token,
+			position: position,
+			right:    suffixExpression,
 		}
 
-		if a.peek.token.BinaryOperator() {
+		if a.peek.token.BooleanOperator() {
 
-			operator := &Operator{
-				token:    a.peek.token,
-				position: a.peek.position,
+			token = a.peek.token
+			position = a.peek.position
+
+			if err = a.next(); err != nil {
+				return nil, err
 			}
 
 			if err = a.next(); err != nil {
-				return nil, ErrInvalidSyntax
+				return nil, err
 			}
 
-			if err = a.next(); err != nil {
-				return nil, ErrInvalidSyntax
-			}
-
-			suffixExpression, err := a.suffixExpression()
+			expression, err := a.expression()
 			if err != nil {
 				return nil, err
 			}
 
-			return &BinaryExpression{&Binary{
-				left:     prefixExpression,
-				Operator: operator,
-				right:    suffixExpression,
-			}}, nil
+			return &BinaryExpression{
+				left:     binaryExpression,
+				token:    token,
+				position: position,
+				right:    expression,
+			}, nil
 		}
 
-		return prefixExpression, nil
+		return binaryExpression, nil
+	}
+
+	return prefixExpression, nil
+}
+
+func (a *AST) suffixExpression() (node, error) {
+
+	var expression node
+	var err error
+
+	if a.current.token.Literal() {
+
+		switch a.current.token {
+		case INTEGER:
+			return &LiteralInteger{
+				value:    a.current.value.(int),
+				position: a.current.position,
+			}, nil
+		case STRING:
+			return &LiteralString{
+				value:    a.current.value.(string),
+				position: a.current.position,
+			}, nil
+		default:
+
+			valueString, ok := a.current.value.(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid syntax: raw identifier is not of type 'string' (position=%d)", a.current.position)
+			}
+
+			return &LiteralIdent{
+				identifier: valueString,
+				position:   a.current.position,
+			}, nil
+		}
 	}
 
 	if a.current.token.UnaryOperator() {
@@ -143,19 +167,47 @@ func (a *AST) suffixExpression() (Expression, error) {
 		position := a.current.position
 
 		if err = a.next(); err != nil {
-			return nil, ErrInvalidSyntax
+			return nil, err
 		}
 
-		expression, err := a.expression()
+		expression, err = a.suffixExpression()
 		if err != nil {
 			return nil, err
 		}
 
-		return &UnaryExpression{&UnaryNot{
-			Expression: expression,
-			position:   position,
-		}}, nil
+		return &UnaryExpression{
+			node:     expression,
+			position: position,
+		}, nil
 	}
 
-	return nil, ErrInvalidSyntax
+	if a.current.token == OPEN {
+
+		position := a.current.position
+
+		if err = a.next(); err != nil {
+			return nil, err
+		}
+
+		expression, err = a.expression()
+		if err != nil {
+			return nil, err
+		}
+
+		if err = a.next(); err != nil {
+			return nil, err
+		}
+
+		if a.current.token != CLOSE {
+			return nil, fmt.Errorf("invalid syntax: group expression not closed (position=%d)", a.current.position)
+		}
+
+		return &GroupingExpression{
+			openPosition:  position,
+			node:          expression,
+			closePosition: a.current.position,
+		}, nil
+	}
+
+	return nil, fmt.Errorf("invalid suffix expression (position=%d)", a.current.position)
 }

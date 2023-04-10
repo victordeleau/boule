@@ -2,7 +2,6 @@ package boule
 
 import (
 	"bufio"
-	"github.com/victordeleau/boule/prefixtree"
 	"strconv"
 	"strings"
 	"unicode"
@@ -17,19 +16,17 @@ type lexerToken struct {
 type lexer struct {
 	position int
 	reader   *bufio.Reader
-	tree     *prefixtree.Tree
 }
 
-func newLexer(input string, identifierTree *prefixtree.Tree) *lexer {
+func newLexer(input string) *lexer {
 	return &lexer{
 		position: 0,
 		reader:   bufio.NewReader(strings.NewReader(input)),
-		tree:     identifierTree,
 	}
 }
 
 // Yield scans the string for the next token. It returns the position of the token,
-// the token's type, and the literal value.
+// the token's type, and the literal identifier.
 func (l *lexer) Yield() *lexerToken {
 
 	var position int
@@ -263,7 +260,7 @@ func (l *lexer) lexString() (Token, string) {
 }
 
 func (l *lexer) lexIdent() (Token, string) {
-	var literal string
+	var s string
 	for {
 		l.position++
 
@@ -273,8 +270,8 @@ func (l *lexer) lexIdent() (Token, string) {
 			break
 		}
 
-		literal += string(r)
+		s += string(r)
 	}
 
-	return IDENT, literal
+	return IDENT, s
 }

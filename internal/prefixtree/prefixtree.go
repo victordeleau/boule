@@ -113,8 +113,8 @@ outerLoop:
 	}
 }
 
-// Add a string and its associated data to the prefix tree.
-func (t *Tree) Add(s string, data interface{}) {
+// add a string and its associated data to the prefix tree.
+func (t *Tree) add(s string, data interface{}) {
 outerLoop:
 	for {
 		t.descendants++
