@@ -53,7 +53,7 @@ var testCases = []struct {
 	// invalid tests
 	{
 		string:      `destination == "Saturn" && speed > 280.32. && speed < 1000`,
-		tokenStream: []Token{IDENT, EQUAL, STRING, AND, IDENT, GREATER, NUMBER, AND, IDENT, LESS, NUMBER},
+		tokenStream: []Token{IDENT, EQUAL, STRING, AND, IDENT, GREATER, ILLEGAL, AND, IDENT, LESS, NUMBER},
 		data: map[string]interface{}{
 			"destination": "Saturn",
 			"speed":       300.89,

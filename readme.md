@@ -1,5 +1,7 @@
 # Boule 🎱
 
+![tests](https://github.com/victordeleau/boule/actions/workflows/test.yaml/badge.svg?event=push)
+
 Boule is a Go boolean expression language. It uses a Context-Free Grammar (CFG) that supports any number of identifiers
 of type `STRING`, `NUMBER`, and `BOOLEAN`, as well as recursive expressions using grouping brackets `()`.
 

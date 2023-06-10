@@ -245,7 +245,6 @@ func (l *lexer) lexNumber() (Token, int) {
 		if !unicode.IsDigit(r) {
 			if r == '.' {
 				if dotFound {
-					_ = l.backup()
 					return ILLEGAL, 0
 				}
 				dotFound = true
