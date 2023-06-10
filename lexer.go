@@ -69,7 +69,7 @@ func (l *lexer) Yield() *lexerToken {
 		token = l.lexOr()
 		value = token.String()
 
-	case '"':
+	case '"', '\'':
 		position = l.position
 		token, value = l.lexString()
 
@@ -266,7 +266,7 @@ func (l *lexer) lexString() (Token, string) {
 		l.position++
 
 		r, _, err := l.reader.ReadRune()
-		if err != nil || r == '"' {
+		if err != nil || r == '"' || r == '\'' {
 			return STRING, literal
 		}
 

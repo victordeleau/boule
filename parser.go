@@ -2,7 +2,7 @@ package boule
 
 import (
 	"fmt"
-	"github.com/victordeleau/boule/internal/prefixtree"
+	"github.com/victordeleau/boule/prefixtree"
 	"io"
 )
 
@@ -11,10 +11,9 @@ type AST struct {
 	lexer   *lexer
 	current *lexerToken
 	peek    *lexerToken
-	data    *prefixtree.Tree
 }
 
-func NewBouleExpression(input string, data *prefixtree.Tree) (func() (bool, error), error) {
+func NewBouleExpression(input string) (func(data *prefixtree.Tree) (bool, error), error) {
 
 	ast := &AST{
 		lexer: newLexer(input),
@@ -24,7 +23,6 @@ func NewBouleExpression(input string, data *prefixtree.Tree) (func() (bool, erro
 		peek: &lexerToken{
 			token: OPEN,
 		},
-		data: data,
 	}
 
 	var err error
@@ -40,7 +38,7 @@ func NewBouleExpression(input string, data *prefixtree.Tree) (func() (bool, erro
 		return nil, err
 	}
 
-	return func() (bool, error) {
+	return func(data *prefixtree.Tree) (bool, error) {
 		result, err := ast.program.Evaluate(data)
 		if err != nil {
 			return false, err

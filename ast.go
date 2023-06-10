@@ -2,7 +2,7 @@ package boule
 
 import (
 	"fmt"
-	"github.com/victordeleau/boule/internal/prefixtree"
+	"github.com/victordeleau/boule/prefixtree"
 	"reflect"
 )
 

@@ -3,7 +3,7 @@ package boule
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"github.com/victordeleau/boule/internal/prefixtree"
+	"github.com/victordeleau/boule/prefixtree"
 	"testing"
 )
 
@@ -15,11 +15,11 @@ func TestParser(t *testing.T) {
 			data := prefixtree.New()
 			assert.NoError(t, data.Add(test.data))
 
-			evaluate, err := NewBouleExpression(test.string, data)
+			evaluate, err := NewBouleExpression(test.string)
 			if test.valid {
 				assert.NoError(t, err)
 
-				result, err := evaluate()
+				result, err := evaluate(data)
 				assert.NoError(t, err)
 
 				assert.Equal(t, test.result, result)

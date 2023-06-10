@@ -20,6 +20,15 @@ var testCases = []struct {
 		result: true,
 	},
 	{
+		string:      `destination == 'Saturn'`,
+		tokenStream: []Token{IDENT, EQUAL, STRING},
+		data: map[string]interface{}{
+			"destination": "Saturn",
+		},
+		valid:  true,
+		result: true,
+	},
+	{
 		string:      `destination == "Saturn" && speed > 280.32`,
 		tokenStream: []Token{IDENT, EQUAL, STRING, AND, IDENT, GREATER, NUMBER},
 		data: map[string]interface{}{

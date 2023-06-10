@@ -43,9 +43,7 @@ func (p *Tree) Add(input ...interface{}) error {
 			return fmt.Errorf("(key, value) mode: 'value' type %T is not supported", input[1])
 		}
 
-	} else {
-		return fmt.Errorf("invalid input mode: either a (key, value) or a map must be passed as argument")
 	}
 
-	return nil
+	return fmt.Errorf("invalid input mode: either a (key, value) or a map must be passed as argument")
 }
