@@ -20,7 +20,7 @@ type testFind struct {
 
 func buildTree(entries []testEntry) *Tree {
 	// add the entries to the tree in random order.
-	tree := New()
+	tree := new(Tree)
 	for _, i := range rand.Perm(len(entries)) {
 		tree.add(entries[i].s, entries[i].value)
 	}
@@ -156,7 +156,7 @@ func TestDictionary(t *testing.T) {
 	}
 
 	// Scan all words from the dictionary into the tree.
-	tree := New()
+	tree := new(Tree)
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		tree.add(scanner.Text(), nil)
@@ -205,7 +205,7 @@ func BenchmarkDictionary(b *testing.B) {
 	}
 
 	// Scan all words from the dictionary into the tree.
-	tree := New()
+	tree := new(Tree)
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		tree.add(scanner.Text(), nil)

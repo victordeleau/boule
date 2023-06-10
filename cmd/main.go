@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/victordeleau/boule"
-	"github.com/victordeleau/boule/prefixtree"
 )
 
 func main() {
@@ -13,15 +12,15 @@ func main() {
 	// The expression syntax will be checked against the authorized grammar.
 
 	expressionString := "!arrived && (origin == 'Mars' || (destination == 'Titan'))"
-	evaluate, err := boule.NewBouleExpression(expressionString)
+	evaluate, err := boule.NewExpression(expressionString)
 	if err != nil {
 		panic(err)
 	}
 
-	// Then, instantiate a prefix tree data structure. Prefix trees enable fast access lookup to the data they contain.
+	// Then, instantiate a Data struct. It uses a prefix tree for fast access lookup.
 	// To add data, either pass a single `map[string]interface{}` argument, or a key/value pair as two arguments.
 
-	data := prefixtree.New()
+	data := boule.NewData()
 
 	if err := data.Add(map[string]interface{}{
 		"arrived": false,

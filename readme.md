@@ -5,39 +5,26 @@
 Boule is a Go boolean expression language. It uses a Context-Free Grammar (CFG) that supports any number of identifiers
 of type `STRING`, `NUMBER`, and `BOOLEAN`, as well as recursive expressions using grouping brackets `()`.
 
-Evaluating the expression `!arrived && (origin == "Mars" || (destination == "Titan"))` using the following struct would return `true`:
-
-```go
-spaceTravel := &struct{
-    Arrived bool
-    Origin string
-    Destination string
-}{
-    Arrived: false,
-    Origin: "Mars",
-    Destination: "Saturn",
-}
-```
 
 ## Example
 
 ```go
 func main() {
-	
-	// First create a `boule` expression by passing the expression string.
-	// It returns a closure used to evaluate the expression and an error.
-	// The expression syntax will be checked against the authorized grammar.
-	
+
+    // First create a `boule` expression by passing the expression string.
+    // It returns a closure used to evaluate the expression and an error.
+    // The expression syntax will be checked against the authorized grammar.
+    
     expressionString := "!arrived && (origin == 'Mars' || (destination == 'Titan'))"
-    evaluate, err := boule.NewBouleExpression(expressionString)
+    evaluate, err := boule.NewExpression(expressionString)
     if err != nil {
         panic(err)
     }
-
-    // Then, instantiate a prefix tree data structure. Prefix trees enable fast access lookup to the data they contain.
-	// To add data, either pass a single `map[string]interface{}` argument, or a key/value pair as two arguments.
     
-    data := prefixtree.New()
+    // Then, instantiate a Data struct. It uses a prefix tree for fast access lookup.
+    // To add data, either pass a single `map[string]interface{}` argument, or a key/value pair as two arguments.
+    
+    data := boule.NewData()
     
     if err := data.Add(map[string]interface{}{
         "arrived": false,
@@ -49,7 +36,7 @@ func main() {
     if err := data.Add("destination", "Titan"); err != nil {
         panic(err)
     }
-
+    
     // You can now evaluate the expression against the prefix tree data structure.
     // Call the closure by passing it the data. An error will be returned if type checking failed.
     // Evaluating the expression will either return 'true' or 'false'.

@@ -40,11 +40,6 @@ type link struct {
 	tree *Tree
 }
 
-// New returns an empty prefix tree.
-func New() *Tree {
-	return new(Tree)
-}
-
 // matchingChars returns the number of shared characters in s1 and s2,
 // starting from the beginning of each string.
 func matchingChars(s1, s2 string) int {
@@ -150,7 +145,7 @@ outerLoop:
 			}
 		}
 
-		// No split necessary, so insert a new link and subtree.
+		// No split necessary, so insert a New link and subtree.
 		if splitLink == nil {
 			subtree := &Tree{data: data, terminal: true, descendants: 1}
 			t.links = append(t.links[:ix],

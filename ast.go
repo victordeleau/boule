@@ -2,9 +2,17 @@ package boule
 
 import (
 	"fmt"
-	"github.com/victordeleau/boule/prefixtree"
+	"github.com/victordeleau/boule/internal/prefixtree"
 	"reflect"
 )
+
+type Data struct {
+	prefixtree.Tree
+}
+
+func NewData() *Data {
+	return new(Data)
+}
 
 /*
 Context-Free grammar
@@ -19,7 +27,7 @@ operator           -> EQUAL | NOT_EQUAL | LESS | LESS_EQUAL | GREATER | GREATER_
 */
 
 type node interface {
-	Evaluate(data *prefixtree.Tree) (interface{}, error)
+	Evaluate(data *Data) (interface{}, error)
 }
 
 type GroupingExpression struct {
@@ -28,7 +36,7 @@ type GroupingExpression struct {
 	closePosition int
 }
 
-func (l *GroupingExpression) Evaluate(data *prefixtree.Tree) (interface{}, error) {
+func (l *GroupingExpression) Evaluate(data *Data) (interface{}, error) {
 	return l.node.Evaluate(data)
 }
 
@@ -39,7 +47,7 @@ type UnaryExpression struct {
 	position int
 }
 
-func (l *UnaryExpression) Evaluate(data *prefixtree.Tree) (interface{}, error) {
+func (l *UnaryExpression) Evaluate(data *Data) (interface{}, error) {
 
 	value, err := l.node.Evaluate(data)
 	if err != nil {
@@ -63,7 +71,7 @@ type BinaryExpression struct {
 	right    node
 }
 
-func (l *BinaryExpression) Evaluate(data *prefixtree.Tree) (interface{}, error) {
+func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 
 	left, err := l.left.Evaluate(data)
 	if err != nil {
@@ -258,7 +266,7 @@ type LiteralNumber struct {
 	position int
 }
 
-func (l *LiteralNumber) Evaluate(_ *prefixtree.Tree) (interface{}, error) {
+func (l *LiteralNumber) Evaluate(_ *Data) (interface{}, error) {
 	return l.value, nil
 }
 
@@ -270,7 +278,7 @@ type LiteralString struct {
 	position int
 }
 
-func (l *LiteralString) Evaluate(_ *prefixtree.Tree) (interface{}, error) {
+func (l *LiteralString) Evaluate(_ *Data) (interface{}, error) {
 	return l.value, nil
 }
 
@@ -282,6 +290,6 @@ type LiteralIdent struct {
 	position   int
 }
 
-func (l *LiteralIdent) Evaluate(data *prefixtree.Tree) (interface{}, error) {
+func (l *LiteralIdent) Evaluate(data *Data) (interface{}, error) {
 	return data.Find(l.identifier)
 }
