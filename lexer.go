@@ -92,7 +92,7 @@ func (l *lexer) Yield() *lexerToken {
 			if l.backup() == EOF {
 				break
 			}
-			token, value = l.lexInteger()
+			token, value = l.lexNumber()
 
 		} else if unicode.IsLetter(r) {
 			position = l.position
@@ -229,16 +229,32 @@ func (l *lexer) lexOr() Token {
 	return OR
 }
 
-func (l *lexer) lexInteger() (Token, int) {
+func (l *lexer) lexNumber() (Token, int) {
+	var dotFound bool
 	var literal string
 	for {
 		l.position++
 
 		r, _, err := l.reader.ReadRune()
-		if err != nil || !unicode.IsDigit(r) {
+		if err != nil {
 			_ = l.backup()
 			value, _ := strconv.Atoi(literal)
-			return INTEGER, value
+			return NUMBER, value
+		}
+
+		if !unicode.IsDigit(r) {
+			if r == '.' {
+				if dotFound {
+					_ = l.backup()
+					return ILLEGAL, 0
+				}
+				dotFound = true
+				literal += "."
+				continue
+			}
+			_ = l.backup()
+			value, _ := strconv.Atoi(literal)
+			return NUMBER, value
 		}
 
 		literal += string(r)

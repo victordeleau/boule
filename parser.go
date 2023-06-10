@@ -14,7 +14,7 @@ type AST struct {
 	data    *prefixtree.Tree
 }
 
-func NewAST(input string, data *prefixtree.Tree) (func() (bool, error), error) {
+func NewBouleExpression(input string, data *prefixtree.Tree) (func() (bool, error), error) {
 
 	ast := &AST{
 		lexer: newLexer(input),
@@ -138,8 +138,8 @@ func (a *AST) suffixExpression() (node, error) {
 	if a.current.token.Literal() {
 
 		switch a.current.token {
-		case INTEGER:
-			return &LiteralInteger{
+		case NUMBER:
+			return &LiteralNumber{
 				value:    a.current.value.(int),
 				position: a.current.position,
 			}, nil

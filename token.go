@@ -7,7 +7,7 @@ const (
 	ILLEGAL
 
 	// literal
-	INTEGER
+	NUMBER
 	STRING
 	IDENT
 
@@ -34,9 +34,9 @@ var tokens = map[Token]string{
 	ILLEGAL: "ILLEGAL",
 
 	// literal
-	INTEGER: "INTEGER",
-	STRING:  "STRING",
-	IDENT:   "IDENT",
+	NUMBER: "NUMBER",
+	STRING: "STRING",
+	IDENT:  "IDENT",
 
 	// binary operator
 	EQUAL:            "==",

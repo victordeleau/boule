@@ -11,7 +11,7 @@ Context-Free grammar
 
 expression         -> binary | suffixExpression
 suffixExpression   -> grouping | literal | unary
-literal            -> INTEGER | STRING | IDENT
+literal            -> NUMBER | STRING | IDENT
 unary              -> NOT suffixExpression
 binary             -> expression operator suffixExpression
 grouping           -> OPEN expression CLOSE
@@ -168,7 +168,6 @@ func (l *BinaryExpression) Evaluate(data *prefixtree.Tree) (interface{}, error) 
 		default:
 			return false, fmt.Errorf("type '%s' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators", leftKind.String())
 		}
-
 	}
 
 	if isFloat(leftKind) && isFloat(rightKind) {
@@ -192,6 +191,50 @@ func (l *BinaryExpression) Evaluate(data *prefixtree.Tree) (interface{}, error) 
 		}
 	}
 
+	if isInt(leftKind) && isFloat(rightKind) {
+
+		leftInt, rightFloat := leftValue.Int(), rightValue.Float()
+		switch l.token {
+		case EQUAL:
+			return float64(leftInt) == rightFloat, nil
+		case NOT_EQUAL:
+			return float64(leftInt) != rightFloat, nil
+		case LESS:
+			return float64(leftInt) < rightFloat, nil
+		case LESS_OR_EQUAL:
+			return float64(leftInt) <= rightFloat, nil
+		case GREATER:
+			return float64(leftInt) > rightFloat, nil
+		case GREATER_OR_EQUAL:
+			return float64(leftInt) >= rightFloat, nil
+		default:
+			return false, fmt.Errorf("type '%s' and '%s' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators", leftKind.String(), rightKind.String())
+		}
+	}
+
+	if isFloat(leftKind) && isInt(rightKind) {
+
+		leftFloat, rightInt := leftValue.Float(), rightValue.Int()
+		switch l.token {
+		case EQUAL:
+			return leftFloat == float64(rightInt), nil
+		case NOT_EQUAL:
+			return leftFloat != float64(rightInt), nil
+		case LESS:
+			return leftFloat < float64(rightInt), nil
+		case LESS_OR_EQUAL:
+			return leftFloat <= float64(rightInt), nil
+		case GREATER:
+			return leftFloat > float64(rightInt), nil
+		case GREATER_OR_EQUAL:
+			return leftFloat >= float64(rightInt), nil
+		default:
+			return false, fmt.Errorf("type '%s' and '%s' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators", leftKind.String(), rightKind.String())
+		}
+	}
+
+	// floats can be compared to ints, and conversely
+
 	return false, fmt.Errorf("can't compare type '%s' with type '%s'", leftKind, rightKind)
 }
 
@@ -210,12 +253,12 @@ func isFloat(kind reflect.Kind) bool {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // integer
 
-type LiteralInteger struct {
+type LiteralNumber struct {
 	value    int
 	position int
 }
 
-func (l *LiteralInteger) Evaluate(_ *prefixtree.Tree) (interface{}, error) {
+func (l *LiteralNumber) Evaluate(_ *prefixtree.Tree) (interface{}, error) {
 	return l.value, nil
 }
 

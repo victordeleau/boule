@@ -11,10 +11,20 @@ var testCases = []struct {
 	// valid tests
 	{
 		string:      `destination == "Saturn" && traveltime > 30000000`,
-		tokenStream: []Token{IDENT, EQUAL, STRING, AND, IDENT, GREATER, INTEGER},
+		tokenStream: []Token{IDENT, EQUAL, STRING, AND, IDENT, GREATER, NUMBER},
 		data: map[string]interface{}{
 			"destination": "Saturn",
 			"traveltime":  50000000,
+		},
+		valid:  true,
+		result: true,
+	},
+	{
+		string:      `destination == "Saturn" && speed > 280.32`,
+		tokenStream: []Token{IDENT, EQUAL, STRING, AND, IDENT, GREATER, NUMBER},
+		data: map[string]interface{}{
+			"destination": "Saturn",
+			"speed":       300.89,
 		},
 		valid:  true,
 		result: true,
@@ -31,7 +41,7 @@ var testCases = []struct {
 	},
 	{
 		string:      `(speed <= 1209843257) && (from == "Mars" || from != "Pluton")`,
-		tokenStream: []Token{OPEN, IDENT, LESS_OR_EQUAL, INTEGER, CLOSE, AND, OPEN, IDENT, EQUAL, STRING, OR, IDENT, NOT_EQUAL, STRING, CLOSE},
+		tokenStream: []Token{OPEN, IDENT, LESS_OR_EQUAL, NUMBER, CLOSE, AND, OPEN, IDENT, EQUAL, STRING, OR, IDENT, NOT_EQUAL, STRING, CLOSE},
 		data: map[string]interface{}{
 			"speed": 20000,
 			"from":  "Mars",
@@ -39,7 +49,18 @@ var testCases = []struct {
 		valid:  true,
 		result: true,
 	},
+
 	// invalid tests
+	{
+		string:      `destination == "Saturn" && speed > 280.32. && speed < 1000`,
+		tokenStream: []Token{IDENT, EQUAL, STRING, AND, IDENT, GREATER, NUMBER, AND, IDENT, LESS, NUMBER},
+		data: map[string]interface{}{
+			"destination": "Saturn",
+			"speed":       300.89,
+		},
+		valid:  false,
+		result: false,
+	},
 	{
 		string:      `== "Io"`,
 		tokenStream: []Token{EQUAL, STRING},
@@ -60,7 +81,7 @@ var testCases = []struct {
 	},
 	{
 		string:      `239869235 >= speed && (> < || !))`,
-		tokenStream: []Token{INTEGER, GREATER_OR_EQUAL, IDENT, AND, OPEN, GREATER, LESS, OR, NOT, CLOSE, CLOSE},
+		tokenStream: []Token{NUMBER, GREATER_OR_EQUAL, IDENT, AND, OPEN, GREATER, LESS, OR, NOT, CLOSE, CLOSE},
 		data:        map[string]interface{}{},
 		valid:       false,
 	},

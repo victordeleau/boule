@@ -15,7 +15,7 @@ func TestParser(t *testing.T) {
 			data := prefixtree.New()
 			assert.NoError(t, data.Add(test.data))
 
-			evaluate, err := NewAST(test.string, data)
+			evaluate, err := NewBouleExpression(test.string, data)
 			if test.valid {
 				assert.NoError(t, err)
 
