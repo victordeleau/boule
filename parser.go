@@ -3,6 +3,7 @@ package boule
 import (
 	"fmt"
 	"io"
+	"math/big"
 )
 
 type AST struct {
@@ -135,9 +136,14 @@ func (a *AST) suffixExpression() (node, error) {
 	if a.current.token.Literal() {
 
 		switch a.current.token {
-		case NUMBER:
-			return &LiteralNumber{
-				value:    a.current.value.(int),
+		case INTEGER:
+			return &LiteralInteger{
+				value:    a.current.value.(*big.Int),
+				position: a.current.position,
+			}, nil
+		case FLOAT:
+			return &LiteralFloat{
+				value:    a.current.value.(float64),
 				position: a.current.position,
 			}, nil
 		case STRING:

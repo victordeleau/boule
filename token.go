@@ -7,7 +7,8 @@ const (
 	ILLEGAL
 
 	// literal
-	NUMBER
+	INTEGER
+	FLOAT
 	STRING
 	IDENT
 
@@ -34,9 +35,10 @@ var tokens = map[Token]string{
 	ILLEGAL: "ILLEGAL",
 
 	// literal
-	NUMBER: "NUMBER",
-	STRING: "STRING",
-	IDENT:  "IDENT",
+	INTEGER: "INTEGER",
+	FLOAT:   "FLOAT",
+	STRING:  "STRING",
+	IDENT:   "IDENT",
 
 	// binary operator
 	EQUAL:            "==",
@@ -70,21 +72,21 @@ func (t Token) Valid() bool {
 }
 
 func (t Token) Literal() bool {
-	return t > 1 && t < 5
+	return t > 1 && t < 6
 }
 
 func (t Token) BinaryOperator() bool {
-	return t > 4 && t < 13
+	return t > 5 && t < 14
 }
 
 func (t Token) BooleanOperator() bool {
-	return t > 10 && t < 13
+	return t > 11 && t < 14
 }
 
 func (t Token) UnaryOperator() bool {
-	return t == 13
+	return t == 14
 }
 
 func (t Token) Group() bool {
-	return t > 13
+	return t > 14
 }

@@ -2,6 +2,7 @@ package prefixtree
 
 import (
 	"fmt"
+	"math/big"
 	"reflect"
 	"strings"
 )
@@ -58,7 +59,7 @@ func (p *Tree) Add(input ...interface{}) error {
 
 func (p *Tree) addKeyValue(key string, value interface{}) error {
 	switch value.(type) {
-	case bool, string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+	case bool, string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, *big.Int:
 		p.add(key, value)
 		return nil
 	default:

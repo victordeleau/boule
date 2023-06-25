@@ -1,5 +1,7 @@
 package boule
 
+import "math/big"
+
 var testCases = []struct {
 	string      string
 	tokenStream []Token
@@ -11,7 +13,7 @@ var testCases = []struct {
 	// valid tests
 	{
 		string:      `destination == "Saturn" && traveltime > 30000000`,
-		tokenStream: []Token{IDENT, EQUAL, STRING, AND, IDENT, GREATER, NUMBER},
+		tokenStream: []Token{IDENT, EQUAL, STRING, AND, IDENT, GREATER, INTEGER},
 		data: map[string]interface{}{
 			"destination": "Saturn",
 			"traveltime":  50000000,
@@ -29,8 +31,26 @@ var testCases = []struct {
 		result: true,
 	},
 	{
+		string:      `arrived == true`,
+		tokenStream: []Token{IDENT, EQUAL, IDENT},
+		data: map[string]interface{}{
+			"arrived": true,
+		},
+		valid:  true,
+		result: true,
+	},
+	{
+		string:      `core_frequency < 345738983260257983`,
+		tokenStream: []Token{IDENT, LESS, INTEGER},
+		data: map[string]interface{}{
+			"core_frequency": big.NewInt(3895679862),
+		},
+		valid:  true,
+		result: true,
+	},
+	{
 		string:      `destination == "Saturn" && speed > 280.32`,
-		tokenStream: []Token{IDENT, EQUAL, STRING, AND, IDENT, GREATER, NUMBER},
+		tokenStream: []Token{IDENT, EQUAL, STRING, AND, IDENT, GREATER, FLOAT},
 		data: map[string]interface{}{
 			"destination": "Saturn",
 			"speed":       300.89,
@@ -50,7 +70,7 @@ var testCases = []struct {
 	},
 	{
 		string:      `(speed <= 1209843257) && (from == "Mars" || from != "Pluton")`,
-		tokenStream: []Token{OPEN, IDENT, LESS_OR_EQUAL, NUMBER, CLOSE, AND, OPEN, IDENT, EQUAL, STRING, OR, IDENT, NOT_EQUAL, STRING, CLOSE},
+		tokenStream: []Token{OPEN, IDENT, LESS_OR_EQUAL, INTEGER, CLOSE, AND, OPEN, IDENT, EQUAL, STRING, OR, IDENT, NOT_EQUAL, STRING, CLOSE},
 		data: map[string]interface{}{
 			"speed": 20000,
 			"from":  "Mars",
@@ -62,7 +82,7 @@ var testCases = []struct {
 	// invalid tests
 	{
 		string:      `destination == "Saturn" && speed > 280.32. && speed < 1000`,
-		tokenStream: []Token{IDENT, EQUAL, STRING, AND, IDENT, GREATER, ILLEGAL, AND, IDENT, LESS, NUMBER},
+		tokenStream: []Token{IDENT, EQUAL, STRING, AND, IDENT, GREATER, ILLEGAL, AND, IDENT, LESS, INTEGER},
 		data: map[string]interface{}{
 			"destination": "Saturn",
 			"speed":       300.89,
@@ -90,7 +110,7 @@ var testCases = []struct {
 	},
 	{
 		string:      `239869235 >= speed && (> < || !))`,
-		tokenStream: []Token{NUMBER, GREATER_OR_EQUAL, IDENT, AND, OPEN, GREATER, LESS, OR, NOT, CLOSE, CLOSE},
+		tokenStream: []Token{INTEGER, GREATER_OR_EQUAL, IDENT, AND, OPEN, GREATER, LESS, OR, NOT, CLOSE, CLOSE},
 		data:        map[string]interface{}{},
 		valid:       false,
 	},

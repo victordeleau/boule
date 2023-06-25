@@ -3,7 +3,9 @@ package boule
 import (
 	"fmt"
 	"github.com/victordeleau/boule/internal/prefixtree"
+	"math/big"
 	"reflect"
+	"strconv"
 )
 
 type Data struct {
@@ -19,7 +21,7 @@ Context-Free grammar
 
 expression         -> binary | suffixExpression
 suffixExpression   -> grouping | literal | unary
-literal            -> NUMBER | STRING | IDENT
+literal            -> INTEGER | STRING | IDENT
 unary              -> NOT suffixExpression
 binary             -> expression operator suffixExpression
 grouping           -> OPEN expression CLOSE
@@ -86,7 +88,7 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 	leftValue, rightValue := reflect.ValueOf(left), reflect.ValueOf(right)
 	leftKind, rightKind := leftType.Kind(), rightType.Kind()
 
-	if leftKind == reflect.Bool {
+	if leftKind == reflect.Bool { // bool <-> bool comparison
 
 		if leftKind != rightType.Kind() {
 			return false, fmt.Errorf("can't compare type '%s' with type '%s'", leftKind, rightKind)
@@ -115,7 +117,8 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 		return false, fmt.Errorf("type '%s' only supports the EQUAL, NOT_EQUAL, AND and OR operators", leftKind.String())
 
 	}
-	if leftKind == reflect.String {
+
+	if leftKind == reflect.String { // string <-> string comparison
 
 		if leftKind != rightType.Kind() {
 			return false, fmt.Errorf("can't compare type '%s' with type '%s'", leftKind, rightKind)
@@ -154,27 +157,132 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 		default:
 			return false, fmt.Errorf("type '%s' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators", leftKind.String())
 		}
-
 	}
 
-	if isUint(leftKind) && isUint(rightKind) {
+	var ok bool
+	var leftIsBigInt, rightIsBigInt bool
+	var leftBigInt, rightBigInt *big.Int
 
-		leftUint, rightUint := leftValue.Uint(), rightValue.Uint()
+	if isUint(leftKind) {
+		leftBigInt, ok = (&big.Int{}).SetString(strconv.FormatUint(leftValue.Uint(), 10), 10)
+		if !ok {
+			return false, fmt.Errorf("uint to big int convertion failed")
+		}
+		leftIsBigInt = true
+
+	} else if isInt(leftKind) {
+		leftBigInt = big.NewInt(leftValue.Int())
+		leftIsBigInt = true
+
+	} else if leftBigInt, ok = leftValue.Interface().(*big.Int); ok {
+		leftIsBigInt = true
+	}
+
+	if isUint(rightKind) {
+		rightBigInt, ok = (&big.Int{}).SetString(strconv.FormatUint(rightValue.Uint(), 10), 10)
+		if !ok {
+			return false, fmt.Errorf("uint to big int convertion failed")
+		}
+		rightIsBigInt = true
+
+	} else if isInt(rightKind) {
+		rightBigInt = big.NewInt(rightValue.Int())
+		rightIsBigInt = true
+
+	} else if rightBigInt, ok = rightValue.Interface().(*big.Int); ok {
+		rightIsBigInt = true
+	}
+
+	var leftIsFloat, rightIsFloat bool
+	var leftFloat64, rightFloat64 float64
+
+	if isFloat(leftKind) {
+		leftFloat64 = leftValue.Float()
+		leftIsFloat = true
+	}
+
+	if isFloat(rightKind) {
+		rightFloat64 = rightValue.Float()
+		rightIsFloat = true
+	}
+
+	if leftIsFloat && rightIsFloat {
 		switch l.token {
 		case EQUAL:
-			return leftUint == rightUint, nil
+			return leftFloat64 == rightFloat64, nil
 		case NOT_EQUAL:
-			return leftUint != rightUint, nil
+			return leftFloat64 != rightFloat64, nil
 		case LESS:
-			return leftUint < rightUint, nil
+			return leftFloat64 < rightFloat64, nil
 		case LESS_OR_EQUAL:
-			return leftUint <= rightUint, nil
+			return leftFloat64 <= rightFloat64, nil
 		case GREATER:
-			return leftUint > rightUint, nil
+			return leftFloat64 > rightFloat64, nil
 		case GREATER_OR_EQUAL:
-			return leftUint >= rightUint, nil
+			return leftFloat64 >= rightFloat64, nil
 		default:
-			return false, fmt.Errorf("type '%s' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators", leftKind.String())
+			return false, fmt.Errorf("type 'float64' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators")
+		}
+	}
+
+	if leftIsBigInt && rightIsBigInt {
+		switch l.token {
+		case EQUAL:
+			return leftBigInt.Cmp(rightBigInt) == 0, nil
+		case NOT_EQUAL:
+			return leftBigInt.Cmp(rightBigInt) != 0, nil
+		case LESS:
+			return leftBigInt.Cmp(rightBigInt) == -1, nil
+		case LESS_OR_EQUAL:
+			return leftBigInt.Cmp(rightBigInt) <= 0, nil
+		case GREATER:
+			return leftBigInt.Cmp(rightBigInt) == 1, nil
+		case GREATER_OR_EQUAL:
+			return leftBigInt.Cmp(rightBigInt) >= 0, nil
+		default:
+			return false, fmt.Errorf("type 'float64' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators")
+		}
+	}
+
+	if leftIsBigInt && rightIsFloat {
+		rightBigFloat := big.NewFloat(rightFloat64)
+		rightRoundedFloat, accuracy := rightBigFloat.Int(nil)
+		switch l.token {
+		case EQUAL:
+			return leftBigInt.Cmp(rightRoundedFloat) == 0 && accuracy == big.Exact, nil
+		case NOT_EQUAL:
+			return leftBigInt.Cmp(rightRoundedFloat) != 0 || accuracy != big.Exact, nil
+		case LESS:
+			return (leftBigInt.Cmp(rightRoundedFloat) == 0 && accuracy == big.Below) || leftBigInt.Cmp(rightRoundedFloat) == -1, nil
+		case LESS_OR_EQUAL:
+			return (leftBigInt.Cmp(rightRoundedFloat) == 0 && (accuracy == big.Exact || accuracy == big.Below)) || leftBigInt.Cmp(rightRoundedFloat) == -1, nil
+		case GREATER:
+			return (leftBigInt.Cmp(rightRoundedFloat) == 0 && accuracy == big.Above) || leftBigInt.Cmp(rightRoundedFloat) == 1, nil
+		case GREATER_OR_EQUAL:
+			return (leftBigInt.Cmp(rightRoundedFloat) == 0 && (accuracy == big.Exact || accuracy == big.Above)) || leftBigInt.Cmp(rightRoundedFloat) == 1, nil
+		default:
+			return false, fmt.Errorf("type 'float64' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators")
+		}
+	}
+
+	if leftIsFloat && rightIsBigInt {
+		leftBigFloat := big.NewFloat(leftFloat64)
+		leftRoundedFloat, accuracy := leftBigFloat.Int(nil)
+		switch l.token {
+		case EQUAL:
+			return leftRoundedFloat.Cmp(rightBigInt) == 0 && accuracy == big.Exact, nil
+		case NOT_EQUAL:
+			return leftRoundedFloat.Cmp(rightBigInt) != 0 || accuracy != big.Exact, nil
+		case LESS:
+			return (leftRoundedFloat.Cmp(rightBigInt) == 0 && accuracy == big.Above) || leftRoundedFloat.Cmp(rightBigInt) == -1, nil
+		case LESS_OR_EQUAL:
+			return (leftRoundedFloat.Cmp(rightBigInt) == 0 && (accuracy == big.Exact || accuracy == big.Above)) || leftRoundedFloat.Cmp(rightBigInt) == -1, nil
+		case GREATER:
+			return (leftRoundedFloat.Cmp(rightBigInt) == 0 && accuracy == big.Below) || leftRoundedFloat.Cmp(rightBigInt) == 1, nil
+		case GREATER_OR_EQUAL:
+			return (leftRoundedFloat.Cmp(rightBigInt) == 0 && (accuracy == big.Exact || accuracy == big.Below)) || leftRoundedFloat.Cmp(rightBigInt) == 1, nil
+		default:
+			return false, fmt.Errorf("type 'float64' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators")
 		}
 	}
 
@@ -199,50 +307,6 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 		}
 	}
 
-	if isInt(leftKind) && isFloat(rightKind) {
-
-		leftInt, rightFloat := leftValue.Int(), rightValue.Float()
-		switch l.token {
-		case EQUAL:
-			return float64(leftInt) == rightFloat, nil
-		case NOT_EQUAL:
-			return float64(leftInt) != rightFloat, nil
-		case LESS:
-			return float64(leftInt) < rightFloat, nil
-		case LESS_OR_EQUAL:
-			return float64(leftInt) <= rightFloat, nil
-		case GREATER:
-			return float64(leftInt) > rightFloat, nil
-		case GREATER_OR_EQUAL:
-			return float64(leftInt) >= rightFloat, nil
-		default:
-			return false, fmt.Errorf("type '%s' and '%s' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators", leftKind.String(), rightKind.String())
-		}
-	}
-
-	if isFloat(leftKind) && isInt(rightKind) {
-
-		leftFloat, rightInt := leftValue.Float(), rightValue.Int()
-		switch l.token {
-		case EQUAL:
-			return leftFloat == float64(rightInt), nil
-		case NOT_EQUAL:
-			return leftFloat != float64(rightInt), nil
-		case LESS:
-			return leftFloat < float64(rightInt), nil
-		case LESS_OR_EQUAL:
-			return leftFloat <= float64(rightInt), nil
-		case GREATER:
-			return leftFloat > float64(rightInt), nil
-		case GREATER_OR_EQUAL:
-			return leftFloat >= float64(rightInt), nil
-		default:
-			return false, fmt.Errorf("type '%s' and '%s' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators", leftKind.String(), rightKind.String())
-		}
-	}
-
-	// floats can be compared to ints, and conversely
-
 	return false, fmt.Errorf("can't compare type '%s' with type '%s'", leftKind, rightKind)
 }
 
@@ -261,12 +325,24 @@ func isFloat(kind reflect.Kind) bool {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // integer
 
-type LiteralNumber struct {
-	value    int
+type LiteralInteger struct {
+	value    *big.Int
 	position int
 }
 
-func (l *LiteralNumber) Evaluate(_ *Data) (interface{}, error) {
+func (l *LiteralInteger) Evaluate(_ *Data) (interface{}, error) {
+	return l.value, nil
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// float
+
+type LiteralFloat struct {
+	value    float64
+	position int
+}
+
+func (l *LiteralFloat) Evaluate(_ *Data) (interface{}, error) {
 	return l.value, nil
 }
 
@@ -291,5 +367,14 @@ type LiteralIdent struct {
 }
 
 func (l *LiteralIdent) Evaluate(data *Data) (interface{}, error) {
+
+	if l.identifier == "true" {
+		return true, nil
+	}
+
+	if l.identifier == "false" {
+		return false, nil
+	}
+
 	return data.Find(l.identifier)
 }

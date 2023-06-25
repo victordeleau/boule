@@ -2,6 +2,7 @@ package boule
 
 import (
 	"bufio"
+	"math/big"
 	"strconv"
 	"strings"
 	"unicode"
@@ -229,7 +230,7 @@ func (l *lexer) lexOr() Token {
 	return OR
 }
 
-func (l *lexer) lexNumber() (Token, int) {
+func (l *lexer) lexNumber() (Token, interface{}) {
 	var dotFound bool
 	var literal string
 	for {
@@ -238,8 +239,19 @@ func (l *lexer) lexNumber() (Token, int) {
 		r, _, err := l.reader.ReadRune()
 		if err != nil {
 			_ = l.backup()
-			value, _ := strconv.Atoi(literal)
-			return NUMBER, value
+			if dotFound {
+				value, err := strconv.ParseFloat(literal, 64)
+				if err != nil {
+					return ILLEGAL, 0
+				}
+				return FLOAT, value
+			} else {
+				integer, ok := (&big.Int{}).SetString(literal, 10)
+				if !ok {
+					return ILLEGAL, 0
+				}
+				return INTEGER, integer
+			}
 		}
 
 		if !unicode.IsDigit(r) {
@@ -252,8 +264,19 @@ func (l *lexer) lexNumber() (Token, int) {
 				continue
 			}
 			_ = l.backup()
-			value, _ := strconv.Atoi(literal)
-			return NUMBER, value
+			if dotFound {
+				value, err := strconv.ParseFloat(literal, 64)
+				if err != nil {
+					return ILLEGAL, 0
+				}
+				return FLOAT, value
+			} else {
+				integer, ok := (&big.Int{}).SetString(literal, 10)
+				if !ok {
+					return ILLEGAL, 0
+				}
+				return INTEGER, integer
+			}
 		}
 
 		literal += string(r)
@@ -280,7 +303,7 @@ func (l *lexer) lexIdent() (Token, string) {
 		l.position++
 
 		r, _, err := l.reader.ReadRune()
-		if err != nil || !unicode.IsLetter(r) {
+		if err != nil || (!unicode.IsLetter(r) && r != '_') {
 			_ = l.backup()
 			break
 		}
