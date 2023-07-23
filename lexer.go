@@ -8,10 +8,14 @@ import (
 	"unicode"
 )
 
-type lexerToken struct {
+type LexerToken struct {
+	token Token
+	value interface{}
+}
+
+type lexerTokenWithPosition struct {
+	LexerToken
 	position int
-	token    Token
-	value    interface{}
 }
 
 type lexer struct {
@@ -28,7 +32,7 @@ func newLexer(input string) *lexer {
 
 // Yield scans the string for the next token. It returns the position of the token,
 // the token's type, and the literal identifier.
-func (l *lexer) Yield() *lexerToken {
+func (l *lexer) Yield() *lexerTokenWithPosition {
 
 	var position int
 	var token Token
@@ -36,7 +40,7 @@ func (l *lexer) Yield() *lexerToken {
 
 	r, _, err := l.reader.ReadRune()
 	if err != nil {
-		return &lexerToken{l.position, EOF, EOF.String()}
+		return &lexerTokenWithPosition{LexerToken: LexerToken{token: EOF, value: EOF.String()}, position: l.position}
 	}
 
 	switch r {
@@ -111,7 +115,7 @@ func (l *lexer) Yield() *lexerToken {
 
 	l.position++
 
-	return &lexerToken{position, token, value}
+	return &lexerTokenWithPosition{LexerToken: LexerToken{token: token, value: value}, position: position}
 }
 
 func (l *lexer) backup() Token {

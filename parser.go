@@ -9,19 +9,23 @@ import (
 type AST struct {
 	program node
 	lexer   *lexer
-	current *lexerToken
-	peek    *lexerToken
+	current *lexerTokenWithPosition
+	peek    *lexerTokenWithPosition
 }
 
 func NewExpression(input string) (func(data *Data) (bool, error), error) {
 
 	ast := &AST{
 		lexer: newLexer(input),
-		current: &lexerToken{
-			token: OPEN,
+		current: &lexerTokenWithPosition{
+			LexerToken: LexerToken{
+				token: OPEN,
+			},
 		},
-		peek: &lexerToken{
-			token: OPEN,
+		peek: &lexerTokenWithPosition{
+			LexerToken: LexerToken{
+				token: OPEN,
+			},
 		},
 	}
 

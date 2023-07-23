@@ -13,8 +13,8 @@ func TestLexer(t *testing.T) {
 
 			lexer := newLexer(test.string)
 
-			var token *lexerToken
-			output := make([]*lexerToken, 0, 10)
+			var token *lexerTokenWithPosition
+			output := make([]*lexerTokenWithPosition, 0, 10)
 			for {
 				if token = lexer.Yield(); token.token == EOF {
 					break
