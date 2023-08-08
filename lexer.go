@@ -307,7 +307,7 @@ func (l *lexer) lexIdent() (Token, string) {
 		l.position++
 
 		r, _, err := l.reader.ReadRune()
-		if err != nil || (!unicode.IsLetter(r) && r != '_') {
+		if err != nil || (!unicode.IsLetter(r) && r != '_' && r != '.') {
 			_ = l.backup()
 			break
 		}

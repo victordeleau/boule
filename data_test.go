@@ -6,7 +6,7 @@ var testCases = []struct {
 	string      string
 	tokenStream []Token
 	data        map[string]interface{}
-	ast         node
+	ast         Node
 	valid       bool
 	result      bool
 }{
@@ -69,11 +69,11 @@ var testCases = []struct {
 		result: true,
 	},
 	{
-		string:      `(speed <= 1209843257) && (from == "Mars" || from != "Pluton")`,
+		string:      `(ship.speed <= 1209843257) && (from == "Mars" || from != "Pluton")`,
 		tokenStream: []Token{OPEN, IDENT, LESS_OR_EQUAL, INTEGER, CLOSE, AND, OPEN, IDENT, EQUAL, STRING, OR, IDENT, NOT_EQUAL, STRING, CLOSE},
 		data: map[string]interface{}{
-			"speed": 20000,
-			"from":  "Mars",
+			"ship.speed": 20000,
+			"from":       "Mars",
 		},
 		valid:  true,
 		result: true,

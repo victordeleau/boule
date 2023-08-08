@@ -22,9 +22,6 @@ func TestLexer(t *testing.T) {
 				output = append(output, token)
 			}
 
-			for _, t := range output {
-				fmt.Printf("%v\n", t.value)
-			}
 			if assert.Equal(t, len(test.tokenStream), len(output)) {
 				for i, token := range output {
 					assert.Equal(t, test.tokenStream[i], token.token)

@@ -7,7 +7,7 @@ import (
 )
 
 type AST struct {
-	program node
+	program Node
 	lexer   *lexer
 	current *lexerTokenWithPosition
 	peek    *lexerTokenWithPosition
@@ -68,7 +68,7 @@ func (a *AST) next() error {
 	return nil
 }
 
-func (a *AST) expression() (node, error) {
+func (a *AST) expression() (Node, error) {
 
 	prefixExpression, err := a.suffixExpression()
 	if err != nil {
@@ -132,9 +132,9 @@ func (a *AST) expression() (node, error) {
 	return prefixExpression, nil
 }
 
-func (a *AST) suffixExpression() (node, error) {
+func (a *AST) suffixExpression() (Node, error) {
 
-	var expression node
+	var expression Node
 	var err error
 
 	if a.current.token.Literal() {
@@ -183,7 +183,7 @@ func (a *AST) suffixExpression() (node, error) {
 		}
 
 		return &UnaryExpression{
-			node:     expression,
+			Node:     expression,
 			position: position,
 		}, nil
 	}
@@ -211,7 +211,7 @@ func (a *AST) suffixExpression() (node, error) {
 
 		return &GroupingExpression{
 			openPosition:  position,
-			node:          expression,
+			Node:          expression,
 			closePosition: a.current.position,
 		}, nil
 	}

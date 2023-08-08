@@ -28,30 +28,30 @@ grouping           -> OPEN expression CLOSE
 operator           -> EQUAL | NOT_EQUAL | LESS | LESS_EQUAL | GREATER | GREATER_EQUAL | AND | OR
 */
 
-type node interface {
+type Node interface {
 	Evaluate(data *Data) (interface{}, error)
 }
 
 type GroupingExpression struct {
 	openPosition int
-	node
+	Node
 	closePosition int
 }
 
 func (l *GroupingExpression) Evaluate(data *Data) (interface{}, error) {
-	return l.node.Evaluate(data)
+	return l.Node.Evaluate(data)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 type UnaryExpression struct {
-	node
+	Node
 	position int
 }
 
 func (l *UnaryExpression) Evaluate(data *Data) (interface{}, error) {
 
-	value, err := l.node.Evaluate(data)
+	value, err := l.Node.Evaluate(data)
 	if err != nil {
 		return false, err
 	}
@@ -67,10 +67,10 @@ func (l *UnaryExpression) Evaluate(data *Data) (interface{}, error) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 type BinaryExpression struct {
-	left     node
+	left     Node
 	token    Token
 	position int
-	right    node
+	right    Node
 }
 
 func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
@@ -111,8 +111,6 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 		if l.token == OR {
 			return leftBool || rightBool, nil
 		}
-
-		fmt.Printf(">>> %+v\n\n", l.token)
 
 		return false, fmt.Errorf("type '%s' only supports the EQUAL, NOT_EQUAL, AND and OR operators", leftKind.String())
 
