@@ -8,6 +8,7 @@ import (
 	"unicode"
 )
 
+// LexerToken pairs a token type with its parsed value.
 type LexerToken struct {
 	token Token
 	value interface{}

@@ -9,10 +9,12 @@ import (
 	"github.com/victordeleau/boule/internal/prefixtree"
 )
 
+// Data holds the variables that expressions are evaluated against.
 type Data struct {
 	prefixtree.Tree
 }
 
+// NewData returns an empty Data store ready for variable insertion via Add.
 func NewData() *Data {
 	return new(Data)
 }
@@ -29,27 +31,32 @@ grouping           -> OPEN expression CLOSE
 operator           -> EQUAL | NOT_EQUAL | LESS | LESS_EQUAL | GREATER | GREATER_EQUAL | AND | OR
 */
 
+// Node represents an evaluable node in the expression AST.
 type Node interface {
 	Evaluate(data *Data) (interface{}, error)
 }
 
+// GroupingExpression represents a parenthesized expression.
 type GroupingExpression struct {
 	openPosition int
 	Node
 	closePosition int
 }
 
+// Evaluate delegates to the inner expression.
 func (l *GroupingExpression) Evaluate(data *Data) (interface{}, error) {
 	return l.Node.Evaluate(data)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// UnaryExpression represents a NOT (!) expression.
 type UnaryExpression struct {
 	Node
 	position int
 }
 
+// Evaluate returns the logical negation of the inner node.
 func (l *UnaryExpression) Evaluate(data *Data) (interface{}, error) {
 
 	value, err := l.Node.Evaluate(data)
@@ -67,6 +74,7 @@ func (l *UnaryExpression) Evaluate(data *Data) (interface{}, error) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// BinaryExpression represents a comparison or logical operation between two nodes.
 type BinaryExpression struct {
 	left     Node
 	token    Token
@@ -74,6 +82,7 @@ type BinaryExpression struct {
 	right    Node
 }
 
+// Evaluate computes the result of the binary operation on the left and right operands.
 func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 
 	left, err := l.left.Evaluate(data)
@@ -300,50 +309,47 @@ func isFloat(kind reflect.Kind) bool {
 	return kind == reflect.Float32 || kind == reflect.Float64
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// integer
-
+// LiteralInteger represents an arbitrary-precision integer literal.
 type LiteralInteger struct {
 	value    *big.Int
 	position int
 }
 
+// Evaluate returns the integer value.
 func (l *LiteralInteger) Evaluate(_ *Data) (interface{}, error) {
 	return l.value, nil
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// float
-
+// LiteralFloat represents a 64-bit floating-point literal.
 type LiteralFloat struct {
 	value    float64
 	position int
 }
 
+// Evaluate returns the float value.
 func (l *LiteralFloat) Evaluate(_ *Data) (interface{}, error) {
 	return l.value, nil
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// string
-
+// LiteralString represents a quoted string literal.
 type LiteralString struct {
 	value    string
 	position int
 }
 
+// Evaluate returns the string value.
 func (l *LiteralString) Evaluate(_ *Data) (interface{}, error) {
 	return l.value, nil
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// identifier
-
+// LiteralIdent represents a variable reference or boolean keyword (true/false).
 type LiteralIdent struct {
 	identifier string
 	position   int
 }
 
+// Evaluate resolves the identifier: "true" and "false" return booleans,
+// anything else is looked up in the data store.
 func (l *LiteralIdent) Evaluate(data *Data) (interface{}, error) {
 
 	if l.identifier == "true" {

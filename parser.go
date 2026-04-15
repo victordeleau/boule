@@ -6,6 +6,7 @@ import (
 	"math/big"
 )
 
+// AST holds the parsed expression tree and the parser state.
 type AST struct {
 	program Node
 	lexer   *lexer
@@ -13,6 +14,9 @@ type AST struct {
 	peek    *lexerTokenWithPosition
 }
 
+// NewExpression parses a boolean expression string and returns an evaluator function.
+// The returned function can be called repeatedly with different Data to evaluate the
+// same expression against different variable sets.
 func NewExpression(input string) (func(data *Data) (bool, error), error) {
 
 	ast := &AST{
