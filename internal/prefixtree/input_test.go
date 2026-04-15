@@ -34,6 +34,50 @@ func TestTree_Add(t *testing.T) {
 		})
 	})
 
+	t.Run("test key validation", func(t *testing.T) {
+
+		t.Run("rejects reserved keyword 'true'", func(t *testing.T) {
+			assert.Error(t, new(Tree).Add("true", 1))
+		})
+
+		t.Run("rejects reserved keyword 'false'", func(t *testing.T) {
+			assert.Error(t, new(Tree).Add("false", 1))
+		})
+
+		t.Run("rejects empty key", func(t *testing.T) {
+			assert.Error(t, new(Tree).Add("", 1))
+		})
+
+		t.Run("rejects key starting with digit", func(t *testing.T) {
+			assert.Error(t, new(Tree).Add("1abc", 1))
+		})
+
+		t.Run("rejects key containing operator characters", func(t *testing.T) {
+			for _, key := range []string{"a==b", "a>b", "a<b", "a!", "a&b", "a|b"} {
+				assert.Error(t, new(Tree).Add(key, 1), "expected error for key %q", key)
+			}
+		})
+
+		t.Run("rejects key containing parentheses", func(t *testing.T) {
+			assert.Error(t, new(Tree).Add("foo(bar)", 1))
+		})
+
+		t.Run("rejects key containing spaces", func(t *testing.T) {
+			assert.Error(t, new(Tree).Add("foo bar", 1))
+		})
+
+		t.Run("accepts valid identifier with dots and underscores", func(t *testing.T) {
+			tree := new(Tree)
+			assert.NoError(t, tree.Add("ship.max_speed", 100))
+		})
+
+		t.Run("rejects reserved keyword in map mode", func(t *testing.T) {
+			assert.Error(t, new(Tree).Add(map[string]interface{}{
+				"true": 1,
+			}))
+		})
+	})
+
 	t.Run("test map", func(t *testing.T) {
 
 		t.Run("can add map as data", func(t *testing.T) {

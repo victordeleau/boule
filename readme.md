@@ -11,6 +11,10 @@ Data can be loaded into the prefix-tree as key/value pairs, as a `map[string]int
 For structs passed as data, any number of embedded structs are supported, but not maps nor slices (yet).
 The identifier name for structs is the json name of the field, which is required for the field to be considered.
 
+Expressions and identifiers are pure ASCII. Identifier keys must start with an ASCII letter (`a-z`, `A-Z`)
+and may only contain ASCII letters, digits (`0-9`), underscores, and dots (dots are used for nested
+struct access, e.g. `owner.name`). Reserved keywords `true` and `false` cannot be used as identifier keys.
+
 ## Example
 
 ```go

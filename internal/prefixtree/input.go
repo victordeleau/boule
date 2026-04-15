@@ -14,6 +14,9 @@ var errBadInput = fmt.Errorf("input is neither a struct{}, a map[string]interfac
 // uint, uint8, uint16, uint32, uint64, float32, or float64. The key and the value are passed as separate arguments.
 // map mode requires a map of type map[string]interface{}, and the key/value pairs must follow the same type restrictions
 // as the (key, value) mode.
+//
+// Keys must start with an ASCII letter (a-z, A-Z) and may only contain ASCII letters,
+// digits (0-9), underscores, and dots. Reserved keywords "true" and "false" are rejected.
 func (p *Tree) Add(input ...interface{}) error {
 
 	var err error
@@ -51,7 +54,45 @@ func (p *Tree) Add(input ...interface{}) error {
 	return errBadInput
 }
 
+var reservedKeywords = map[string]struct{}{
+	"true":  {},
+	"false": {},
+}
+
+// validateKey checks that key is a valid ASCII identifier: non-empty, starts with an
+// ASCII letter (a-z, A-Z), contains only ASCII letters/digits/underscores/dots, and
+// is not a reserved keyword.
+func validateKey(key string) error {
+	if len(key) == 0 {
+		return fmt.Errorf("key must not be empty")
+	}
+	if _, reserved := reservedKeywords[key]; reserved {
+		return fmt.Errorf("key %q is a reserved keyword", key)
+	}
+	if !isASCIILetter(key[0]) {
+		return fmt.Errorf("key %q must start with an ASCII letter", key)
+	}
+	for i := 0; i < len(key); i++ {
+		c := key[i]
+		if !isASCIILetter(c) && !isASCIIDigit(c) && c != '_' && c != '.' {
+			return fmt.Errorf("key %q contains invalid character %q", key, c)
+		}
+	}
+	return nil
+}
+
+func isASCIILetter(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+}
+
+func isASCIIDigit(c byte) bool {
+	return c >= '0' && c <= '9'
+}
+
 func (p *Tree) addKeyValue(key string, value interface{}) error {
+	if err := validateKey(key); err != nil {
+		return err
+	}
 	switch value.(type) {
 	case bool, string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, *big.Int:
 		p.add(key, value)

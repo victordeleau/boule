@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
-	"unicode"
 )
 
 // LexerToken pairs a token type with its parsed value.
@@ -39,12 +38,12 @@ func (l *lexer) Yield() *lexerTokenWithPosition {
 	var token Token
 	var value interface{}
 
-	r, _, err := l.reader.ReadRune()
+	c, err := l.reader.ReadByte()
 	if err != nil {
 		return &lexerTokenWithPosition{LexerToken: LexerToken{token: EOF, value: EOF.String()}, position: l.position}
 	}
 
-	switch r {
+	switch c {
 	case '=':
 		position = l.position
 		token = l.lexEqual()
@@ -90,17 +89,17 @@ func (l *lexer) Yield() *lexerTokenWithPosition {
 		value = CLOSE.String()
 
 	default:
-		if unicode.IsSpace(r) {
+		if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
 			return l.Yield() // move on to next token
 
-		} else if unicode.IsDigit(r) {
+		} else if c >= '0' && c <= '9' {
 			position = l.position
 			if l.backup() == EOF {
 				break
 			}
 			token, value = l.lexNumber()
 
-		} else if unicode.IsLetter(r) {
+		} else if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') {
 			position = l.position
 			if l.backup() == EOF {
 				break
@@ -121,7 +120,7 @@ func (l *lexer) Yield() *lexerTokenWithPosition {
 
 func (l *lexer) backup() Token {
 	l.position--
-	if err := l.reader.UnreadRune(); err != nil {
+	if err := l.reader.UnreadByte(); err != nil {
 		return EOF
 	}
 	return Token(-1)
@@ -131,12 +130,12 @@ func (l *lexer) lexEqual() Token {
 
 	l.position++
 
-	r, _, err := l.reader.ReadRune()
+	c, err := l.reader.ReadByte()
 	if err != nil {
 		return EOF
 	}
 
-	if r != '=' {
+	if c != '=' {
 		return ILLEGAL
 	}
 
@@ -147,12 +146,12 @@ func (l *lexer) lexExclamation() Token {
 
 	l.position++
 
-	r, _, err := l.reader.ReadRune()
+	c, err := l.reader.ReadByte()
 	if err != nil {
 		return EOF
 	}
 
-	if r == '=' { // !=
+	if c == '=' { // !=
 		return NOT_EQUAL
 	}
 
@@ -167,16 +166,16 @@ func (l *lexer) lexGreater() Token {
 
 	l.position++
 
-	r, _, err := l.reader.ReadRune()
+	c, err := l.reader.ReadByte()
 	if err != nil {
 		return EOF
 	}
 
-	if r == '=' { // >=
+	if c == '=' { // >=
 		return GREATER_OR_EQUAL
 	}
 
-	if unicode.IsSpace(r) {
+	if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
 		return GREATER
 	}
 
@@ -187,16 +186,16 @@ func (l *lexer) lexLess() Token {
 
 	l.position++
 
-	r, _, err := l.reader.ReadRune()
+	c, err := l.reader.ReadByte()
 	if err != nil {
 		return EOF
 	}
 
-	if r == '=' { // <=
+	if c == '=' { // <=
 		return LESS_OR_EQUAL
 	}
 
-	if unicode.IsSpace(r) {
+	if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
 		return LESS
 	}
 
@@ -207,12 +206,12 @@ func (l *lexer) lexAnd() Token {
 
 	l.position++
 
-	r, _, err := l.reader.ReadRune()
+	c, err := l.reader.ReadByte()
 	if err != nil {
 		return EOF
 	}
 
-	if r != '&' {
+	if c != '&' {
 		return ILLEGAL
 	}
 
@@ -223,12 +222,12 @@ func (l *lexer) lexOr() Token {
 
 	l.position++
 
-	r, _, err := l.reader.ReadRune()
+	c, err := l.reader.ReadByte()
 	if err != nil {
 		return EOF
 	}
 
-	if r != '|' {
+	if c != '|' {
 		return ILLEGAL
 	}
 
@@ -241,9 +240,8 @@ func (l *lexer) lexNumber() (Token, interface{}) {
 	for {
 		l.position++
 
-		r, _, err := l.reader.ReadRune()
+		c, err := l.reader.ReadByte()
 		if err != nil {
-			_ = l.backup()
 			literal := b.String()
 			if dotFound {
 				value, err := strconv.ParseFloat(literal, 64)
@@ -260,8 +258,8 @@ func (l *lexer) lexNumber() (Token, interface{}) {
 			}
 		}
 
-		if !unicode.IsDigit(r) {
-			if r == '.' {
+		if c < '0' || c > '9' {
+			if c == '.' {
 				if dotFound {
 					return ILLEGAL, 0
 				}
@@ -286,7 +284,7 @@ func (l *lexer) lexNumber() (Token, interface{}) {
 			}
 		}
 
-		b.WriteRune(r)
+		b.WriteByte(c)
 	}
 }
 
@@ -295,12 +293,12 @@ func (l *lexer) lexString() (Token, string) {
 	for {
 		l.position++
 
-		r, _, err := l.reader.ReadRune()
-		if err != nil || r == '"' || r == '\'' {
+		c, err := l.reader.ReadByte()
+		if err != nil || c == '"' || c == '\'' {
 			return STRING, b.String()
 		}
 
-		b.WriteRune(r)
+		b.WriteByte(c)
 	}
 }
 
@@ -309,14 +307,21 @@ func (l *lexer) lexIdent() (Token, string) {
 	for {
 		l.position++
 
-		r, _, err := l.reader.ReadRune()
-		if err != nil || (!unicode.IsLetter(r) && r != '_' && r != '.') {
+		c, err := l.reader.ReadByte()
+		if err != nil {
+			break
+		}
+		if !isLetter(c) && c != '_' && c != '.' {
 			_ = l.backup()
 			break
 		}
 
-		b.WriteRune(r)
+		b.WriteByte(c)
 	}
 
 	return IDENT, b.String()
+}
+
+func isLetter(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
