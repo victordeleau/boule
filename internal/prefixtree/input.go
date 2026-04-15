@@ -26,12 +26,6 @@ func (p *Tree) Add(input ...interface{}) error {
 			if fieldMap, err = p.structToJsonFieldMap(input[0]); err != nil {
 				return errBadInput
 			}
-
-			for k, v := range fieldMap {
-				if err = p.addKeyValue(k, v); err != nil {
-					return err
-				}
-			}
 		}
 
 		for k, v := range fieldMap {
