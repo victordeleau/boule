@@ -236,13 +236,14 @@ func (l *lexer) lexOr() Token {
 
 func (l *lexer) lexNumber() (Token, interface{}) {
 	var dotFound bool
-	var literal string
+	var b strings.Builder
 	for {
 		l.position++
 
 		r, _, err := l.reader.ReadRune()
 		if err != nil {
 			_ = l.backup()
+			literal := b.String()
 			if dotFound {
 				value, err := strconv.ParseFloat(literal, 64)
 				if err != nil {
@@ -264,10 +265,11 @@ func (l *lexer) lexNumber() (Token, interface{}) {
 					return ILLEGAL, 0
 				}
 				dotFound = true
-				literal += "."
+				b.WriteByte('.')
 				continue
 			}
 			_ = l.backup()
+			literal := b.String()
 			if dotFound {
 				value, err := strconv.ParseFloat(literal, 64)
 				if err != nil {
@@ -283,26 +285,26 @@ func (l *lexer) lexNumber() (Token, interface{}) {
 			}
 		}
 
-		literal += string(r)
+		b.WriteRune(r)
 	}
 }
 
 func (l *lexer) lexString() (Token, string) {
-	var literal string
+	var b strings.Builder
 	for {
 		l.position++
 
 		r, _, err := l.reader.ReadRune()
 		if err != nil || r == '"' || r == '\'' {
-			return STRING, literal
+			return STRING, b.String()
 		}
 
-		literal += string(r)
+		b.WriteRune(r)
 	}
 }
 
 func (l *lexer) lexIdent() (Token, string) {
-	var s string
+	var b strings.Builder
 	for {
 		l.position++
 
@@ -312,8 +314,8 @@ func (l *lexer) lexIdent() (Token, string) {
 			break
 		}
 
-		s += string(r)
+		b.WriteRune(r)
 	}
 
-	return IDENT, s
+	return IDENT, b.String()
 }
