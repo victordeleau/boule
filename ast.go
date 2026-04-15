@@ -2,10 +2,11 @@ package boule
 
 import (
 	"fmt"
-	"github.com/victordeleau/boule/internal/prefixtree"
 	"math/big"
 	"reflect"
 	"strconv"
+
+	"github.com/victordeleau/boule/internal/prefixtree"
 )
 
 type Data struct {
@@ -281,27 +282,6 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 			return (leftRoundedFloat.Cmp(rightBigInt) == 0 && (accuracy == big.Exact || accuracy == big.Below)) || leftRoundedFloat.Cmp(rightBigInt) == 1, nil
 		default:
 			return false, fmt.Errorf("type 'float64' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators")
-		}
-	}
-
-	if isFloat(leftKind) && isFloat(rightKind) {
-
-		leftFloat, rightFloat := leftValue.Float(), rightValue.Float()
-		switch l.token {
-		case EQUAL:
-			return leftFloat == rightFloat, nil
-		case NOT_EQUAL:
-			return leftFloat != rightFloat, nil
-		case LESS:
-			return leftFloat < rightFloat, nil
-		case LESS_OR_EQUAL:
-			return leftFloat <= rightFloat, nil
-		case GREATER:
-			return leftFloat > rightFloat, nil
-		case GREATER_OR_EQUAL:
-			return leftFloat >= rightFloat, nil
-		default:
-			return false, fmt.Errorf("type '%s' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators", leftKind.String())
 		}
 	}
 
