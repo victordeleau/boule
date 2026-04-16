@@ -5,239 +5,254 @@ import (
 	"testing"
 )
 
-func TestTree_Add(t *testing.T) {
+func TestTree_AddKeyValue(t *testing.T) {
 
-	t.Run("test key/value pair", func(t *testing.T) {
-
-		t.Run("can add key/value pair", func(t *testing.T) {
-
-			tree := new(Tree)
-			assert.NoError(t, tree.Add("some_key", 380))
-			value, err := tree.Find("some_key")
-			if assert.NoError(t, err) {
-				if assert.IsType(t, 10, value) {
-					assert.Equal(t, 380, value)
-				}
+	t.Run("can add key/value pair", func(t *testing.T) {
+		tree := new(Tree)
+		assert.NoError(t, tree.AddKeyValue("some_key", 380))
+		value, err := tree.Find("some_key")
+		if assert.NoError(t, err) {
+			if assert.IsType(t, 10, value) {
+				assert.Equal(t, 380, value)
 			}
-		})
-
-		t.Run("key must be a string", func(t *testing.T) {
-
-			tree := new(Tree)
-			assert.Error(t, tree.Add(3, 380))
-		})
-
-		t.Run("can't pass more than 2 arguments", func(t *testing.T) {
-
-			tree := new(Tree)
-			assert.Error(t, tree.Add("some_key", 380, "oups"))
-		})
+		}
 	})
 
-	t.Run("test key validation", func(t *testing.T) {
+	t.Run("rejects unsupported value type", func(t *testing.T) {
+		assert.Error(t, new(Tree).AddKeyValue("key", []int{1, 2}))
+	})
+}
 
-		t.Run("rejects reserved keyword 'true'", func(t *testing.T) {
-			assert.Error(t, new(Tree).Add("true", 1))
-		})
+func TestTree_AddMap(t *testing.T) {
 
-		t.Run("rejects reserved keyword 'false'", func(t *testing.T) {
-			assert.Error(t, new(Tree).Add("false", 1))
-		})
+	t.Run("can add map as data", func(t *testing.T) {
+		tree := new(Tree)
+		assert.NoError(t, tree.AddMap(map[string]interface{}{
+			"road":   "Wellington",
+			"number": 20,
+		}))
 
-		t.Run("rejects empty key", func(t *testing.T) {
-			assert.Error(t, new(Tree).Add("", 1))
-		})
-
-		t.Run("rejects key starting with digit", func(t *testing.T) {
-			assert.Error(t, new(Tree).Add("1abc", 1))
-		})
-
-		t.Run("rejects key containing operator characters", func(t *testing.T) {
-			for _, key := range []string{"a==b", "a>b", "a<b", "a!", "a&b", "a|b"} {
-				assert.Error(t, new(Tree).Add(key, 1), "expected error for key %q", key)
+		value, err := tree.Find("road")
+		if assert.NoError(t, err) {
+			if assert.IsType(t, "string", value) {
+				assert.Equal(t, "Wellington", value)
 			}
-		})
+		}
 
-		t.Run("rejects key containing parentheses", func(t *testing.T) {
-			assert.Error(t, new(Tree).Add("foo(bar)", 1))
-		})
-
-		t.Run("rejects key containing spaces", func(t *testing.T) {
-			assert.Error(t, new(Tree).Add("foo bar", 1))
-		})
-
-		t.Run("accepts valid identifier with dots and underscores", func(t *testing.T) {
-			tree := new(Tree)
-			assert.NoError(t, tree.Add("ship.max_speed", 100))
-		})
-
-		t.Run("rejects reserved keyword in map mode", func(t *testing.T) {
-			assert.Error(t, new(Tree).Add(map[string]interface{}{
-				"true": 1,
-			}))
-		})
+		value, err = tree.Find("number")
+		if assert.NoError(t, err) {
+			if assert.IsType(t, 0, value) {
+				assert.Equal(t, 20, value)
+			}
+		}
 	})
 
-	t.Run("test map", func(t *testing.T) {
-
-		t.Run("can add map as data", func(t *testing.T) {
-
-			tree := new(Tree)
-
-			data := map[string]interface{}{
-				"road":   "Wellington",
-				"number": 20,
-			}
-
-			assert.NoError(t, tree.Add(data))
-
-			value, err := tree.Find("road")
-			if assert.NoError(t, err) {
-				if assert.IsType(t, "string", value) {
-					assert.Equal(t, "Wellington", value)
-				}
-			}
-
-			value, err = tree.Find("number")
-			if assert.NoError(t, err) {
-				if assert.IsType(t, 0, value) {
-					assert.Equal(t, 20, value)
-				}
-			}
-		})
-
-		t.Run("map can't index slice", func(t *testing.T) {
-
-			assert.Error(t, new(Tree).Add(map[string]interface{}{
-				"index": []int{0, 1, 2},
-			}))
-		})
-
-		t.Run("map can't index map", func(t *testing.T) {
-
-			assert.Error(t, new(Tree).Add(map[string]interface{}{
-				"index": map[string]int{"un": 1, "deux": 2},
-			}))
-		})
+	t.Run("map can't index slice", func(t *testing.T) {
+		assert.Error(t, new(Tree).AddMap(map[string]interface{}{
+			"index": []int{0, 1, 2},
+		}))
 	})
 
-	t.Run("test struct", func(t *testing.T) {
+	t.Run("map can't index map", func(t *testing.T) {
+		assert.Error(t, new(Tree).AddMap(map[string]interface{}{
+			"index": map[string]int{"un": 1, "deux": 2},
+		}))
+	})
 
-		t.Run("can add struct as data", func(t *testing.T) {
+	t.Run("rejects reserved keyword in map", func(t *testing.T) {
+		assert.Error(t, new(Tree).AddMap(map[string]interface{}{
+			"true": 1,
+		}))
+	})
+}
 
-			tree := new(Tree)
+func TestTree_AddStruct(t *testing.T) {
 
-			data := struct {
-				Road   string `json:"road"`
-				Number int    `json:"number"`
-			}{
-				Road:   "Wellington",
-				Number: 20,
+	t.Run("can add struct as data", func(t *testing.T) {
+		tree := new(Tree)
+		data := struct {
+			Road   string `json:"road"`
+			Number int    `json:"number"`
+		}{
+			Road:   "Wellington",
+			Number: 20,
+		}
+
+		assert.NoError(t, tree.AddStruct(data))
+
+		value, err := tree.Find("road")
+		if assert.NoError(t, err) {
+			if assert.IsType(t, "string", value) {
+				assert.Equal(t, "Wellington", value)
 			}
+		}
 
-			assert.NoError(t, tree.Add(data))
-
-			value, err := tree.Find("road")
-			if assert.NoError(t, err) {
-				if assert.IsType(t, "string", value) {
-					assert.Equal(t, "Wellington", value)
-				}
+		value, err = tree.Find("number")
+		if assert.NoError(t, err) {
+			if assert.IsType(t, 0, value) {
+				assert.Equal(t, 20, value)
 			}
+		}
+	})
 
-			value, err = tree.Find("number")
-			if assert.NoError(t, err) {
-				if assert.IsType(t, 0, value) {
-					assert.Equal(t, 20, value)
-				}
+	t.Run("fields without json tag are ignored", func(t *testing.T) {
+		tree := new(Tree)
+		data := struct {
+			Road   string `json:"road"`
+			Number int
+		}{
+			Road:   "Wellington",
+			Number: 20,
+		}
+
+		assert.NoError(t, tree.AddStruct(data))
+
+		value, err := tree.Find("road")
+		if assert.NoError(t, err) {
+			if assert.IsType(t, "string", value) {
+				assert.Equal(t, "Wellington", value)
 			}
-		})
+		}
 
-		t.Run("fields without json tag are ignored", func(t *testing.T) {
+		_, err = tree.Find("number")
+		assert.Error(t, err)
+	})
 
-			tree := new(Tree)
+	t.Run("embedded structs are supported", func(t *testing.T) {
+		type Owner struct {
+			Name string `json:"name,omitempty"`
+		}
 
-			data := struct {
-				Road   string `json:"road"`
-				Number int
-			}{
-				Road:   "Wellington",
-				Number: 20,
+		tree := new(Tree)
+		data := struct {
+			Road  string `json:"road"`
+			Owner Owner  `json:"owner"`
+		}{
+			Road: "Wellington",
+			Owner: Owner{
+				Name: "Rodolph",
+			},
+		}
+
+		assert.NoError(t, tree.AddStruct(data))
+
+		value, err := tree.Find("road")
+		if assert.NoError(t, err) {
+			if assert.IsType(t, "string", value) {
+				assert.Equal(t, "Wellington", value)
 			}
+		}
 
-			assert.NoError(t, tree.Add(data))
-
-			value, err := tree.Find("road")
-			if assert.NoError(t, err) {
-				if assert.IsType(t, "string", value) {
-					assert.Equal(t, "Wellington", value)
-				}
+		value, err = tree.Find("owner.name")
+		if assert.NoError(t, err) {
+			if assert.IsType(t, "string", value) {
+				assert.Equal(t, "Rodolph", value)
 			}
+		}
+	})
 
-			value, err = tree.Find("number")
-			assert.Error(t, err)
-		})
+	t.Run("embedded maps are not supported", func(t *testing.T) {
+		tree := new(Tree)
+		assert.NoError(t, tree.AddStruct(struct {
+			Index map[string]int `json:"index"`
+		}{
+			Index: map[string]int{"un": 1, "deux": 2, "trois": 3},
+		}))
 
-		t.Run("embedded structs are supported", func(t *testing.T) {
+		_, err := tree.Find("index")
+		assert.Error(t, err)
+	})
 
-			type Owner struct {
-				Name string `json:"name,omitempty"`
-			}
+	t.Run("embedded slice are not supported", func(t *testing.T) {
+		tree := new(Tree)
+		assert.NoError(t, tree.AddStruct(struct {
+			Index []int `json:"index"`
+		}{
+			Index: []int{1, 2, 3},
+		}))
 
-			tree := new(Tree)
+		_, err := tree.Find("index")
+		assert.Error(t, err)
+	})
 
-			data := struct {
-				Road  string `json:"road"`
-				Owner Owner  `json:"owner"`
-			}{
-				Road: "Wellington",
-				Owner: Owner{
-					Name: "Rodolph",
-				},
-			}
+	t.Run("rejects non-struct input", func(t *testing.T) {
+		assert.Error(t, new(Tree).AddStruct("not a struct"))
+	})
+}
 
-			assert.NoError(t, tree.Add(data))
+func TestTree_KeyValidation(t *testing.T) {
 
-			value, err := tree.Find("road")
-			if assert.NoError(t, err) {
-				if assert.IsType(t, "string", value) {
-					assert.Equal(t, "Wellington", value)
-				}
-			}
+	t.Run("rejects reserved keyword 'true'", func(t *testing.T) {
+		assert.Error(t, new(Tree).AddKeyValue("true", 1))
+	})
 
-			value, err = tree.Find("owner.name")
-			if assert.NoError(t, err) {
-				if assert.IsType(t, "string", value) {
-					assert.Equal(t, "Rodolph", value)
-				}
-			}
-		})
+	t.Run("rejects reserved keyword 'false'", func(t *testing.T) {
+		assert.Error(t, new(Tree).AddKeyValue("false", 1))
+	})
 
-		t.Run("embedded maps are not supported", func(t *testing.T) {
+	t.Run("rejects empty key", func(t *testing.T) {
+		assert.Error(t, new(Tree).AddKeyValue("", 1))
+	})
 
-			tree := new(Tree)
+	t.Run("rejects key starting with digit", func(t *testing.T) {
+		assert.Error(t, new(Tree).AddKeyValue("1abc", 1))
+	})
 
-			assert.NoError(t, tree.Add(struct {
-				Index map[string]int `json:"index"`
-			}{
-				Index: map[string]int{"un": 1, "deux": 2, "trois": 3},
-			}))
+	t.Run("rejects key containing operator characters", func(t *testing.T) {
+		for _, key := range []string{"a==b", "a>b", "a<b", "a!", "a&b", "a|b"} {
+			assert.Error(t, new(Tree).AddKeyValue(key, 1), "expected error for key %q", key)
+		}
+	})
 
-			_, err := tree.Find("index")
-			assert.Error(t, err)
-		})
+	t.Run("rejects key containing parentheses", func(t *testing.T) {
+		assert.Error(t, new(Tree).AddKeyValue("foo(bar)", 1))
+	})
 
-		t.Run("embedded slice are not supported", func(t *testing.T) {
+	t.Run("rejects key containing spaces", func(t *testing.T) {
+		assert.Error(t, new(Tree).AddKeyValue("foo bar", 1))
+	})
 
-			tree := new(Tree)
+	t.Run("accepts valid identifier with dots and underscores", func(t *testing.T) {
+		assert.NoError(t, new(Tree).AddKeyValue("ship.max_speed", 100))
+	})
+}
 
-			assert.NoError(t, tree.Add(struct {
-				Index []int `json:"index"`
-			}{
-				Index: []int{1, 2, 3},
-			}))
+func TestTree_AddBackwardCompat(t *testing.T) {
 
-			_, err := tree.Find("index")
-			assert.Error(t, err)
-		})
+	t.Run("key/value via Add", func(t *testing.T) {
+		tree := new(Tree)
+		assert.NoError(t, tree.Add("some_key", 380))
+		value, err := tree.Find("some_key")
+		if assert.NoError(t, err) {
+			assert.Equal(t, 380, value)
+		}
+	})
+
+	t.Run("map via Add", func(t *testing.T) {
+		tree := new(Tree)
+		assert.NoError(t, tree.Add(map[string]interface{}{"road": "Wellington"}))
+		value, err := tree.Find("road")
+		if assert.NoError(t, err) {
+			assert.Equal(t, "Wellington", value)
+		}
+	})
+
+	t.Run("struct via Add", func(t *testing.T) {
+		tree := new(Tree)
+		assert.NoError(t, tree.Add(struct {
+			Road string `json:"road"`
+		}{Road: "Wellington"}))
+		value, err := tree.Find("road")
+		if assert.NoError(t, err) {
+			assert.Equal(t, "Wellington", value)
+		}
+	})
+
+	t.Run("wrong arg count via Add", func(t *testing.T) {
+		assert.Error(t, new(Tree).Add("a", 1, "extra"))
+	})
+
+	t.Run("non-string key via Add", func(t *testing.T) {
+		assert.Error(t, new(Tree).Add(3, 380))
 	})
 }

@@ -7,51 +7,59 @@ import (
 	"strings"
 )
 
-var errBadInput = fmt.Errorf("input is neither a struct{}, a map[string]interface{}, nor a key/value pair")
-
-// Add identifiers to the prefix tree. Two modes are supported: (key, value) mode and map mode.
-// (key, value) mode requires a key of type string, and a value of type bool, string, int, int8, int16, int32, int64,
-// uint, uint8, uint16, uint32, uint64, float32, or float64. The key and the value are passed as separate arguments.
-// map mode requires a map of type map[string]interface{}, and the key/value pairs must follow the same type restrictions
-// as the (key, value) mode.
+// AddKeyValue adds a single identifier to the prefix tree.
 //
 // Keys must start with an ASCII letter (a-z, A-Z) and may only contain ASCII letters,
 // digits (0-9), underscores, and dots. Reserved keywords "true" and "false" are rejected.
-func (p *Tree) Add(input ...interface{}) error {
+// Supported value types: bool, string, int, int8, int16, int32, int64, uint, uint8,
+// uint16, uint32, uint64, float32, float64, and *big.Int.
+func (p *Tree) AddKeyValue(key string, value interface{}) error {
+	return p.addKeyValue(key, value)
+}
 
-	var err error
-
-	if len(input) == 1 { // either a map or a struct
-
-		fieldMap, isMap := input[0].(map[string]interface{})
-
-		if !isMap { // if not map, then must be a struct
-			if fieldMap, err = p.structToJsonFieldMap(input[0]); err != nil {
-				return errBadInput
-			}
-		}
-
-		for k, v := range fieldMap {
-			if err = p.addKeyValue(k, v); err != nil {
-				return err
-			}
-		}
-		return nil
-
-	} else if len(input) == 2 { // then must be a key/value pair
-
-		key, ok := input[0].(string)
-		if !ok {
-			return fmt.Errorf("(key, value) mode: 'key' must be of type 'string'")
-		}
-
-		if err = p.addKeyValue(key, input[1]); err != nil {
+// AddMap adds all entries from a map[string]interface{} to the prefix tree.
+// Keys and values follow the same rules as AddKeyValue.
+func (p *Tree) AddMap(m map[string]interface{}) error {
+	for k, v := range m {
+		if err := p.addKeyValue(k, v); err != nil {
 			return err
 		}
-		return nil
 	}
+	return nil
+}
 
-	return errBadInput
+// AddStruct adds fields from a struct to the prefix tree. Field names are derived
+// from json struct tags (fields without a json tag are ignored). Nested structs are
+// supported via dot notation (e.g. "owner.name"). Slice and map fields are skipped.
+func (p *Tree) AddStruct(s interface{}) error {
+	fieldMap, err := p.structToJsonFieldMap(s)
+	if err != nil {
+		return err
+	}
+	for k, v := range fieldMap {
+		if err := p.addKeyValue(k, v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Deprecated: Add is kept for backward compatibility. Use AddKeyValue, AddMap, or AddStruct instead.
+func (p *Tree) Add(input ...interface{}) error {
+	if len(input) == 1 {
+		if m, ok := input[0].(map[string]interface{}); ok {
+			return p.AddMap(m)
+		}
+		return p.AddStruct(input[0])
+	}
+	if len(input) == 2 {
+		key, ok := input[0].(string)
+		if !ok {
+			return fmt.Errorf("key must be of type string")
+		}
+		return p.AddKeyValue(key, input[1])
+	}
+	return fmt.Errorf("expected 1 or 2 arguments, got %d", len(input))
 }
 
 var reservedKeywords = map[string]struct{}{

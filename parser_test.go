@@ -12,7 +12,7 @@ func TestParser(t *testing.T) {
 		t.Run(fmt.Sprintf("testing string %v", test.string), func(t *testing.T) {
 
 			data := NewData()
-			assert.NoError(t, data.Add(test.data))
+			assert.NoError(t, data.AddMap(test.data))
 
 			evaluate, err := NewExpression(test.string)
 			if test.valid {

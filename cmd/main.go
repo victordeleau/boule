@@ -16,20 +16,20 @@ func main() {
 	data := boule.NewData()
 
 	// structs are supported
-	_ = data.Add(struct {
+	_ = data.AddStruct(struct {
 		Cancelled bool `json:"cancelled"`
 	}{
 		Cancelled: false,
 	})
 
 	// maps are supported
-	_ = data.Add(map[string]interface{}{
+	_ = data.AddMap(map[string]interface{}{
 		"arrived": false,
 		"origin":  "Mars",
 	})
 
 	// key/value pairs are supported
-	_ = data.Add("destination", "Titan")
+	_ = data.AddKeyValue("destination", "Titan")
 
 	// You can now evaluate the expression against the data, which returns 'true' or 'false'.
 	// An error will be returned if type checking failed, or if an identifier was not found.

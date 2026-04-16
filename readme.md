@@ -6,7 +6,7 @@ Boule is a Go boolean expression language. It uses a Context-Free Grammar (CFG) 
 of type `STRING`, `NUMBER`, and `BOOLEAN`, as well as recursive expressions using grouping brackets `()`.
 
 Expressions are evaluated against a prefix-tree data structure containing the identifiers in the expression.
-Data can be loaded into the prefix-tree as key/value pairs, as a `map[string]interface{}`, or as a struct.
+Data can be loaded into the prefix-tree via `AddKeyValue`, `AddMap`, or `AddStruct`.
 
 For structs passed as data, any number of embedded structs are supported, but not maps nor slices (yet).
 The identifier name for structs is the json name of the field, which is required for the field to be considered.
@@ -29,20 +29,20 @@ func main() {
     data := boule.NewData()
     
     // structs are supported
-    _ = data.Add(struct {
+    _ = data.AddStruct(struct {
         Cancelled bool `json:"cancelled"`
     }{
         Cancelled: false,
     })
     
     // maps are supported
-    _ = data.Add(map[string]interface{}{
+    _ = data.AddMap(map[string]interface{}{
         "arrived": false,
         "origin":  "Mars",
     })
     
     // key/value pairs are supported
-    _ = data.Add("destination", "Titan")
+    _ = data.AddKeyValue("destination", "Titan")
     
     // You can now evaluate the expression against the data, which returns 'true' or 'false'.
     // An error will be returned if type checking failed, or if an identifier was not found.
