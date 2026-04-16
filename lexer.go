@@ -168,18 +168,18 @@ func (l *lexer) lexGreater() Token {
 
 	c, err := l.reader.ReadByte()
 	if err != nil {
-		return EOF
+		return GREATER
 	}
 
 	if c == '=' { // >=
 		return GREATER_OR_EQUAL
 	}
 
-	if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
-		return GREATER
+	if l.backup() == EOF {
+		return EOF
 	}
 
-	return ILLEGAL
+	return GREATER
 }
 
 func (l *lexer) lexLess() Token {
@@ -188,18 +188,18 @@ func (l *lexer) lexLess() Token {
 
 	c, err := l.reader.ReadByte()
 	if err != nil {
-		return EOF
+		return LESS
 	}
 
 	if c == '=' { // <=
 		return LESS_OR_EQUAL
 	}
 
-	if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
-		return LESS
+	if l.backup() == EOF {
+		return EOF
 	}
 
-	return ILLEGAL
+	return LESS
 }
 
 func (l *lexer) lexAnd() Token {

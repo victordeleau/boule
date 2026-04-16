@@ -78,6 +78,16 @@ var testCases = []struct {
 		valid:  true,
 		result: true,
 	},
+	{
+		string:      `speed>100 && altitude<5000`,
+		tokenStream: []Token{IDENT, GREATER, INTEGER, AND, IDENT, LESS, INTEGER},
+		data: map[string]interface{}{
+			"speed":    200,
+			"altitude": 3000,
+		},
+		valid:  true,
+		result: true,
+	},
 
 	// invalid tests
 	{

@@ -101,7 +101,7 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 	if leftKind == reflect.Bool { // bool <-> bool comparison
 
 		if leftKind != rightType.Kind() {
-			return false, fmt.Errorf("can't compare type '%s' with type '%s'", leftKind, rightKind)
+			return false, fmt.Errorf("can't compare type '%s' with type '%s' (position=%d)", leftKind, rightKind, l.position)
 		}
 
 		leftBool, rightBool := left.(bool), right.(bool)
@@ -122,14 +122,14 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 			return leftBool || rightBool, nil
 		}
 
-		return false, fmt.Errorf("type '%s' only supports the EQUAL, NOT_EQUAL, AND and OR operators", leftKind.String())
+		return false, fmt.Errorf("type '%s' only supports the EQUAL, NOT_EQUAL, AND and OR operators (position=%d)", leftKind.String(), l.position)
 
 	}
 
 	if leftKind == reflect.String { // string <-> string comparison
 
 		if leftKind != rightType.Kind() {
-			return false, fmt.Errorf("can't compare type '%s' with type '%s'", leftKind, rightKind)
+			return false, fmt.Errorf("can't compare type '%s' with type '%s' (position=%d)", leftKind, rightKind, l.position)
 		}
 
 		leftString, rightString := left.(string), right.(string)
@@ -142,7 +142,7 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 			return leftString != rightString, nil
 		}
 
-		return false, fmt.Errorf("type '%s' only supports the EQUAL and NOT_EQUAL operators", leftKind.String())
+		return false, fmt.Errorf("type '%s' only supports the EQUAL and NOT_EQUAL operators (position=%d)", leftKind.String(), l.position)
 
 	}
 
@@ -163,7 +163,7 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 		case GREATER_OR_EQUAL:
 			return leftInt >= rightInt, nil
 		default:
-			return false, fmt.Errorf("type '%s' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators", leftKind.String())
+			return false, fmt.Errorf("type '%s' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", leftKind.String(), l.position)
 		}
 	}
 
@@ -174,7 +174,7 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 	if isUint(leftKind) {
 		leftBigInt, ok = (&big.Int{}).SetString(strconv.FormatUint(leftValue.Uint(), 10), 10)
 		if !ok {
-			return false, fmt.Errorf("uint to big int convertion failed")
+			return false, fmt.Errorf("uint to big int conversion failed (position=%d)", l.position)
 		}
 		leftIsBigInt = true
 
@@ -189,7 +189,7 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 	if isUint(rightKind) {
 		rightBigInt, ok = (&big.Int{}).SetString(strconv.FormatUint(rightValue.Uint(), 10), 10)
 		if !ok {
-			return false, fmt.Errorf("uint to big int convertion failed")
+			return false, fmt.Errorf("uint to big int conversion failed (position=%d)", l.position)
 		}
 		rightIsBigInt = true
 
@@ -229,7 +229,7 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 		case GREATER_OR_EQUAL:
 			return leftFloat64 >= rightFloat64, nil
 		default:
-			return false, fmt.Errorf("type 'float64' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators")
+			return false, fmt.Errorf("type 'float64' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", l.position)
 		}
 	}
 
@@ -248,7 +248,7 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 		case GREATER_OR_EQUAL:
 			return leftBigInt.Cmp(rightBigInt) >= 0, nil
 		default:
-			return false, fmt.Errorf("type 'float64' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators")
+			return false, fmt.Errorf("type 'big.Int' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", l.position)
 		}
 	}
 
@@ -269,7 +269,7 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 		case GREATER_OR_EQUAL:
 			return (leftBigInt.Cmp(rightRoundedFloat) == 0 && (accuracy == big.Exact || accuracy == big.Above)) || leftBigInt.Cmp(rightRoundedFloat) == 1, nil
 		default:
-			return false, fmt.Errorf("type 'float64' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators")
+			return false, fmt.Errorf("numeric types only support the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", l.position)
 		}
 	}
 
@@ -290,11 +290,11 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 		case GREATER_OR_EQUAL:
 			return (leftRoundedFloat.Cmp(rightBigInt) == 0 && (accuracy == big.Exact || accuracy == big.Below)) || leftRoundedFloat.Cmp(rightBigInt) == 1, nil
 		default:
-			return false, fmt.Errorf("type 'float64' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_GREATER operators")
+			return false, fmt.Errorf("numeric types only support the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", l.position)
 		}
 	}
 
-	return false, fmt.Errorf("can't compare type '%s' with type '%s'", leftKind, rightKind)
+	return false, fmt.Errorf("can't compare type '%s' with type '%s' (position=%d)", leftKind, rightKind, l.position)
 }
 
 func isInt(kind reflect.Kind) bool {
