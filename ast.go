@@ -3,8 +3,6 @@ package boule
 import (
 	"fmt"
 	"math/big"
-	"reflect"
-	"strconv"
 
 	"github.com/victordeleau/boule/internal/prefixtree"
 )
@@ -94,219 +92,215 @@ func (l *BinaryExpression) Evaluate(data *Data) (interface{}, error) {
 		return nil, err
 	}
 
-	leftType, rightType := reflect.TypeOf(left), reflect.TypeOf(right)
-	leftValue, rightValue := reflect.ValueOf(left), reflect.ValueOf(right)
-	leftKind, rightKind := leftType.Kind(), rightType.Kind()
-
-	if leftKind == reflect.Bool { // bool <-> bool comparison
-
-		if leftKind != rightType.Kind() {
-			return false, fmt.Errorf("can't compare type '%s' with type '%s' (position=%d)", leftKind, rightKind, l.position)
-		}
-
-		leftBool, rightBool := left.(bool), right.(bool)
-
-		if l.token == EQUAL {
-			return leftBool == rightBool, nil
-		}
-
-		if l.token == NOT_EQUAL {
-			return leftBool != rightBool, nil
-		}
-
-		if l.token == AND {
-			return leftBool && rightBool, nil
-		}
-
-		if l.token == OR {
-			return leftBool || rightBool, nil
-		}
-
-		return false, fmt.Errorf("type '%s' only supports the EQUAL, NOT_EQUAL, AND and OR operators (position=%d)", leftKind.String(), l.position)
-
-	}
-
-	if leftKind == reflect.String { // string <-> string comparison
-
-		if leftKind != rightType.Kind() {
-			return false, fmt.Errorf("can't compare type '%s' with type '%s' (position=%d)", leftKind, rightKind, l.position)
-		}
-
-		leftString, rightString := left.(string), right.(string)
-
-		if l.token == EQUAL {
-			return leftString == rightString, nil
-		}
-
-		if l.token == NOT_EQUAL {
-			return leftString != rightString, nil
-		}
-
-		return false, fmt.Errorf("type '%s' only supports the EQUAL and NOT_EQUAL operators (position=%d)", leftKind.String(), l.position)
-
-	}
-
-	if isInt(leftKind) && isInt(rightKind) {
-
-		leftInt, rightInt := leftValue.Int(), rightValue.Int()
-		switch l.token {
-		case EQUAL:
-			return leftInt == rightInt, nil
-		case NOT_EQUAL:
-			return leftInt != rightInt, nil
-		case LESS:
-			return leftInt < rightInt, nil
-		case LESS_OR_EQUAL:
-			return leftInt <= rightInt, nil
-		case GREATER:
-			return leftInt > rightInt, nil
-		case GREATER_OR_EQUAL:
-			return leftInt >= rightInt, nil
-		default:
-			return false, fmt.Errorf("type '%s' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", leftKind.String(), l.position)
-		}
-	}
-
-	var ok bool
-	var leftIsBigInt, rightIsBigInt bool
-	var leftBigInt, rightBigInt *big.Int
-
-	if isUint(leftKind) {
-		leftBigInt, ok = (&big.Int{}).SetString(strconv.FormatUint(leftValue.Uint(), 10), 10)
+	switch lv := left.(type) {
+	case bool:
+		rv, ok := right.(bool)
 		if !ok {
-			return false, fmt.Errorf("uint to big int conversion failed (position=%d)", l.position)
+			return false, fmt.Errorf("can't compare type 'bool' with type '%T' (position=%d)", right, l.position)
 		}
-		leftIsBigInt = true
+		switch l.token {
+		case EQUAL:
+			return lv == rv, nil
+		case NOT_EQUAL:
+			return lv != rv, nil
+		case AND:
+			return lv && rv, nil
+		case OR:
+			return lv || rv, nil
+		default:
+			return false, fmt.Errorf("type 'bool' only supports the EQUAL, NOT_EQUAL, AND and OR operators (position=%d)", l.position)
+		}
 
-	} else if isInt(leftKind) {
-		leftBigInt = big.NewInt(leftValue.Int())
-		leftIsBigInt = true
-
-	} else if leftBigInt, ok = leftValue.Interface().(*big.Int); ok {
-		leftIsBigInt = true
-	}
-
-	if isUint(rightKind) {
-		rightBigInt, ok = (&big.Int{}).SetString(strconv.FormatUint(rightValue.Uint(), 10), 10)
+	case string:
+		rv, ok := right.(string)
 		if !ok {
-			return false, fmt.Errorf("uint to big int conversion failed (position=%d)", l.position)
+			return false, fmt.Errorf("can't compare type 'string' with type '%T' (position=%d)", right, l.position)
 		}
-		rightIsBigInt = true
-
-	} else if isInt(rightKind) {
-		rightBigInt = big.NewInt(rightValue.Int())
-		rightIsBigInt = true
-
-	} else if rightBigInt, ok = rightValue.Interface().(*big.Int); ok {
-		rightIsBigInt = true
-	}
-
-	var leftIsFloat, rightIsFloat bool
-	var leftFloat64, rightFloat64 float64
-
-	if isFloat(leftKind) {
-		leftFloat64 = leftValue.Float()
-		leftIsFloat = true
-	}
-
-	if isFloat(rightKind) {
-		rightFloat64 = rightValue.Float()
-		rightIsFloat = true
-	}
-
-	if leftIsFloat && rightIsFloat {
 		switch l.token {
 		case EQUAL:
-			return leftFloat64 == rightFloat64, nil
+			return lv == rv, nil
 		case NOT_EQUAL:
-			return leftFloat64 != rightFloat64, nil
-		case LESS:
-			return leftFloat64 < rightFloat64, nil
-		case LESS_OR_EQUAL:
-			return leftFloat64 <= rightFloat64, nil
-		case GREATER:
-			return leftFloat64 > rightFloat64, nil
-		case GREATER_OR_EQUAL:
-			return leftFloat64 >= rightFloat64, nil
+			return lv != rv, nil
 		default:
-			return false, fmt.Errorf("type 'float64' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", l.position)
+			return false, fmt.Errorf("type 'string' only supports the EQUAL and NOT_EQUAL operators (position=%d)", l.position)
 		}
-	}
 
-	if leftIsBigInt && rightIsBigInt {
-		switch l.token {
-		case EQUAL:
-			return leftBigInt.Cmp(rightBigInt) == 0, nil
-		case NOT_EQUAL:
-			return leftBigInt.Cmp(rightBigInt) != 0, nil
-		case LESS:
-			return leftBigInt.Cmp(rightBigInt) == -1, nil
-		case LESS_OR_EQUAL:
-			return leftBigInt.Cmp(rightBigInt) <= 0, nil
-		case GREATER:
-			return leftBigInt.Cmp(rightBigInt) == 1, nil
-		case GREATER_OR_EQUAL:
-			return leftBigInt.Cmp(rightBigInt) >= 0, nil
-		default:
-			return false, fmt.Errorf("type 'big.Int' only supports the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", l.position)
+	default:
+		leftInt, leftBig, leftFloat, leftKind := toNumeric(left)
+		rightInt, rightBig, rightFloat, rightKind := toNumeric(right)
+
+		if leftKind == numNone || rightKind == numNone {
+			return false, fmt.Errorf("can't compare type '%T' with type '%T' (position=%d)", left, right, l.position)
 		}
-	}
 
-	if leftIsBigInt && rightIsFloat {
-		rightBigFloat := big.NewFloat(rightFloat64)
-		rightRoundedFloat, accuracy := rightBigFloat.Int(nil)
-		switch l.token {
-		case EQUAL:
-			return leftBigInt.Cmp(rightRoundedFloat) == 0 && accuracy == big.Exact, nil
-		case NOT_EQUAL:
-			return leftBigInt.Cmp(rightRoundedFloat) != 0 || accuracy != big.Exact, nil
-		case LESS:
-			return (leftBigInt.Cmp(rightRoundedFloat) == 0 && accuracy == big.Below) || leftBigInt.Cmp(rightRoundedFloat) == -1, nil
-		case LESS_OR_EQUAL:
-			return (leftBigInt.Cmp(rightRoundedFloat) == 0 && (accuracy == big.Exact || accuracy == big.Below)) || leftBigInt.Cmp(rightRoundedFloat) == -1, nil
-		case GREATER:
-			return (leftBigInt.Cmp(rightRoundedFloat) == 0 && accuracy == big.Above) || leftBigInt.Cmp(rightRoundedFloat) == 1, nil
-		case GREATER_OR_EQUAL:
-			return (leftBigInt.Cmp(rightRoundedFloat) == 0 && (accuracy == big.Exact || accuracy == big.Above)) || leftBigInt.Cmp(rightRoundedFloat) == 1, nil
-		default:
-			return false, fmt.Errorf("numeric types only support the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", l.position)
+		if leftKind == numInt64 && rightKind == numInt64 {
+			return compareInt64(leftInt, rightInt, l.token, l.position)
 		}
-	}
 
-	if leftIsFloat && rightIsBigInt {
-		leftBigFloat := big.NewFloat(leftFloat64)
-		leftRoundedFloat, accuracy := leftBigFloat.Int(nil)
-		switch l.token {
-		case EQUAL:
-			return leftRoundedFloat.Cmp(rightBigInt) == 0 && accuracy == big.Exact, nil
-		case NOT_EQUAL:
-			return leftRoundedFloat.Cmp(rightBigInt) != 0 || accuracy != big.Exact, nil
-		case LESS:
-			return (leftRoundedFloat.Cmp(rightBigInt) == 0 && accuracy == big.Above) || leftRoundedFloat.Cmp(rightBigInt) == -1, nil
-		case LESS_OR_EQUAL:
-			return (leftRoundedFloat.Cmp(rightBigInt) == 0 && (accuracy == big.Exact || accuracy == big.Above)) || leftRoundedFloat.Cmp(rightBigInt) == -1, nil
-		case GREATER:
-			return (leftRoundedFloat.Cmp(rightBigInt) == 0 && accuracy == big.Below) || leftRoundedFloat.Cmp(rightBigInt) == 1, nil
-		case GREATER_OR_EQUAL:
-			return (leftRoundedFloat.Cmp(rightBigInt) == 0 && (accuracy == big.Exact || accuracy == big.Below)) || leftRoundedFloat.Cmp(rightBigInt) == 1, nil
-		default:
-			return false, fmt.Errorf("numeric types only support the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", l.position)
+		if leftKind == numFloat64 && rightKind == numFloat64 {
+			return compareFloat64(leftFloat, rightFloat, l.token, l.position)
 		}
-	}
 
-	return false, fmt.Errorf("can't compare type '%s' with type '%s' (position=%d)", leftKind, rightKind, l.position)
+		leftBig = promoteToBI(leftInt, leftBig, leftKind)
+		rightBig = promoteToBI(rightInt, rightBig, rightKind)
+
+		if leftKind != numFloat64 && rightKind != numFloat64 {
+			return compareBigInt(leftBig, rightBig, l.token, l.position)
+		}
+
+		if leftKind == numFloat64 {
+			return compareFloatBigInt(leftFloat, rightBig, l.token, l.position)
+		}
+		return compareBigIntFloat(leftBig, rightFloat, l.token, l.position)
+	}
 }
 
-func isInt(kind reflect.Kind) bool {
-	return kind == reflect.Int || kind == reflect.Int8 || kind == reflect.Int16 || kind == reflect.Int32 || kind == reflect.Int64
+type numKind int
+
+const (
+	numNone numKind = iota
+	numInt64
+	numBigInt
+	numFloat64
+)
+
+func toNumeric(v interface{}) (int64, *big.Int, float64, numKind) {
+	switch n := v.(type) {
+	case int:
+		return int64(n), nil, 0, numInt64
+	case int8:
+		return int64(n), nil, 0, numInt64
+	case int16:
+		return int64(n), nil, 0, numInt64
+	case int32:
+		return int64(n), nil, 0, numInt64
+	case int64:
+		return n, nil, 0, numInt64
+	case uint:
+		return 0, new(big.Int).SetUint64(uint64(n)), 0, numBigInt
+	case uint8:
+		return 0, new(big.Int).SetUint64(uint64(n)), 0, numBigInt
+	case uint16:
+		return 0, new(big.Int).SetUint64(uint64(n)), 0, numBigInt
+	case uint32:
+		return 0, new(big.Int).SetUint64(uint64(n)), 0, numBigInt
+	case uint64:
+		return 0, new(big.Int).SetUint64(uint64(n)), 0, numBigInt
+	case float32:
+		return 0, nil, float64(n), numFloat64
+	case float64:
+		return 0, nil, n, numFloat64
+	case *big.Int:
+		return 0, n, 0, numBigInt
+	default:
+		return 0, nil, 0, numNone
+	}
 }
 
-func isUint(kind reflect.Kind) bool {
-	return kind == reflect.Uint || kind == reflect.Uint8 || kind == reflect.Uint16 || kind == reflect.Uint32 || kind == reflect.Uint64
+func promoteToBI(i64 int64, bi *big.Int, kind numKind) *big.Int {
+	if kind == numInt64 {
+		return big.NewInt(i64)
+	}
+	return bi
 }
 
-func isFloat(kind reflect.Kind) bool {
-	return kind == reflect.Float32 || kind == reflect.Float64
+func compareInt64(l, r int64, token Token, pos int) (interface{}, error) {
+	switch token {
+	case EQUAL:
+		return l == r, nil
+	case NOT_EQUAL:
+		return l != r, nil
+	case LESS:
+		return l < r, nil
+	case LESS_OR_EQUAL:
+		return l <= r, nil
+	case GREATER:
+		return l > r, nil
+	case GREATER_OR_EQUAL:
+		return l >= r, nil
+	default:
+		return false, fmt.Errorf("numeric types only support the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", pos)
+	}
+}
+
+func compareFloat64(l, r float64, token Token, pos int) (interface{}, error) {
+	switch token {
+	case EQUAL:
+		return l == r, nil
+	case NOT_EQUAL:
+		return l != r, nil
+	case LESS:
+		return l < r, nil
+	case LESS_OR_EQUAL:
+		return l <= r, nil
+	case GREATER:
+		return l > r, nil
+	case GREATER_OR_EQUAL:
+		return l >= r, nil
+	default:
+		return false, fmt.Errorf("numeric types only support the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", pos)
+	}
+}
+
+func compareBigInt(l, r *big.Int, token Token, pos int) (interface{}, error) {
+	switch token {
+	case EQUAL:
+		return l.Cmp(r) == 0, nil
+	case NOT_EQUAL:
+		return l.Cmp(r) != 0, nil
+	case LESS:
+		return l.Cmp(r) == -1, nil
+	case LESS_OR_EQUAL:
+		return l.Cmp(r) <= 0, nil
+	case GREATER:
+		return l.Cmp(r) == 1, nil
+	case GREATER_OR_EQUAL:
+		return l.Cmp(r) >= 0, nil
+	default:
+		return false, fmt.Errorf("numeric types only support the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", pos)
+	}
+}
+
+func compareBigIntFloat(l *big.Int, r float64, token Token, pos int) (interface{}, error) {
+	rBigFloat := big.NewFloat(r)
+	rRounded, accuracy := rBigFloat.Int(nil)
+	switch token {
+	case EQUAL:
+		return l.Cmp(rRounded) == 0 && accuracy == big.Exact, nil
+	case NOT_EQUAL:
+		return l.Cmp(rRounded) != 0 || accuracy != big.Exact, nil
+	case LESS:
+		return (l.Cmp(rRounded) == 0 && accuracy == big.Below) || l.Cmp(rRounded) == -1, nil
+	case LESS_OR_EQUAL:
+		return (l.Cmp(rRounded) == 0 && (accuracy == big.Exact || accuracy == big.Below)) || l.Cmp(rRounded) == -1, nil
+	case GREATER:
+		return (l.Cmp(rRounded) == 0 && accuracy == big.Above) || l.Cmp(rRounded) == 1, nil
+	case GREATER_OR_EQUAL:
+		return (l.Cmp(rRounded) == 0 && (accuracy == big.Exact || accuracy == big.Above)) || l.Cmp(rRounded) == 1, nil
+	default:
+		return false, fmt.Errorf("numeric types only support the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", pos)
+	}
+}
+
+func compareFloatBigInt(l float64, r *big.Int, token Token, pos int) (interface{}, error) {
+	lBigFloat := big.NewFloat(l)
+	lRounded, accuracy := lBigFloat.Int(nil)
+	switch token {
+	case EQUAL:
+		return lRounded.Cmp(r) == 0 && accuracy == big.Exact, nil
+	case NOT_EQUAL:
+		return lRounded.Cmp(r) != 0 || accuracy != big.Exact, nil
+	case LESS:
+		return (lRounded.Cmp(r) == 0 && accuracy == big.Above) || lRounded.Cmp(r) == -1, nil
+	case LESS_OR_EQUAL:
+		return (lRounded.Cmp(r) == 0 && (accuracy == big.Exact || accuracy == big.Above)) || lRounded.Cmp(r) == -1, nil
+	case GREATER:
+		return (lRounded.Cmp(r) == 0 && accuracy == big.Below) || lRounded.Cmp(r) == 1, nil
+	case GREATER_OR_EQUAL:
+		return (lRounded.Cmp(r) == 0 && (accuracy == big.Exact || accuracy == big.Below)) || lRounded.Cmp(r) == 1, nil
+	default:
+		return false, fmt.Errorf("numeric types only support the EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER and GREATER_OR_EQUAL operators (position=%d)", pos)
+	}
 }
 
 // LiteralInteger represents an arbitrary-precision integer literal.
